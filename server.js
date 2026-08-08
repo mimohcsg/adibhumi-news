@@ -532,19 +532,158 @@ function stripHtml(html = "") {
     .trim();
 }
 
-function pickImage(item) {
-  if (item.enclosure?.url && /^https?:/i.test(item.enclosure.url)) {
-    return item.enclosure.url;
+/** Outlets often appended by Google News / wire RSS — never show these on आदिभूमि. */
+const PUBLISHER_NAMES = [
+  "Bhopal Samachar",
+  "Bhaskar English",
+  "Dainik Bhaskar",
+  "दैनिक भास्कर",
+  "भास्कर",
+  "Amar Ujala",
+  "अमर उजाला",
+  "Nai Dunia",
+  "नई दुनिया",
+  "Naidunia",
+  "Jagran",
+  "जागरण",
+  "Aaj Tak",
+  "आज तक",
+  "BBC Hindi",
+  "BBC हिंदी",
+  "Times of India",
+  "टाइम्स ऑफ इंडिया",
+  "Indian Express",
+  "इंडियन एक्सप्रेस",
+  "The Hindu",
+  "द हिंदू",
+  "Hindustan Times",
+  "Jhabua Live",
+  "Indore Samachar",
+  "Free Press",
+  "Patrika",
+  "पत्रिका",
+  "News18",
+  "NDTV",
+  "ABP News",
+  "Zee News",
+  "Google News",
+  "गूगल न्यूज़",
+  "ANI",
+  "PTI",
+  "IANS",
+  "scanx.trade",
+  "Mshale",
+];
+
+const PUBLISHER_NAME_RE = new RegExp(
+  `\\b(?:${PUBLISHER_NAMES.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\b`,
+  "gi",
+);
+
+function stripPublisherAttribution(text = "") {
+  let t = String(text || "").trim();
+  if (!t) return "";
+
+  // Google News style: "Headline - Publisher" / "Headline | Publisher"
+  for (let i = 0; i < 4; i += 1) {
+    const before = t;
+    t = t.replace(/\s*[-–—|/]\s*[A-Za-z0-9\u0900-\u097F.&'’ ]{2,48}\s*$/u, (suffix) => {
+      const name = suffix.replace(/^[\s\-–—|/]+/, "").trim();
+      if (PUBLISHER_NAMES.some((p) => p.toLowerCase() === name.toLowerCase())) return "";
+      // Title-case English outlet (e.g. "Bhopal Samachar", "Free Press Journal")
+      if (/^[A-Z][A-Za-z0-9.&'’]*(?:\s+[A-Z][A-Za-z0-9.&'’]*){0,4}$/.test(name) && name.length <= 40) {
+        return "";
+      }
+      // Hindi outlet-looking tail without sentence punctuation
+      if (/^[\u0900-\u097F\s]{2,30}$/u.test(name) && !/[।?]/.test(name) && name.split(/\s+/).length <= 4) {
+        return "";
+      }
+      return suffix;
+    });
+    if (t === before) break;
   }
-  const media = item.mediaContent?.[0];
-  if (media?.$?.url) return media.$.url;
-  if (typeof media === "object" && media.url) return media.url;
-  const thumb = item.mediaThumbnail?.[0];
-  if (thumb?.$?.url) return thumb.$.url;
-  const html = item.contentEncoded || item["content:encoded"] || item.content || "";
-  const match = String(html).match(/<img[^>]+src=["']([^"']+)["']/i);
-  return match?.[1] || null;
+
+  t = t.replace(PUBLISHER_NAME_RE, " ");
+  t = t
+    .replace(/\(\s*\)/g, "")
+    .replace(/\s*[-–—|/]\s*$/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return t;
 }
+
+/** Light desk rewrite so copy reads as आदिभूमि coverage, not a wire paste. */
+function editorialTitle(rawTitle = "", lang = "hi") {
+  let title = stripPublisherAttribution(stripHtml(rawTitle));
+  title = title
+    .replace(/^(?:breaking|ब्रेकिंग|अपडेट|update)\s*[:\-–—]\s*/i, "")
+    .replace(/\s*\|\s*live\s*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Prefer portal spelling for Alirajpur
+  title = title.replace(/आलीराजपुर/g, "अलीराजपुर");
+
+  if (lang === "en") {
+    title = title.replace(/\s+/g, " ").trim();
+    if (title && title === title.toUpperCase() && title.length > 12) {
+      title = title.replace(/\w+/g, (w) => w.charAt(0) + w.slice(1).toLowerCase());
+    }
+  }
+
+  // Soft rephrase hooks (headline polish)
+  const swaps =
+    lang === "hi"
+      ? [
+          [/को लेकर हंगामा/g, "पर विवाद"],
+          [/बड़ी खबर\s*:\s*/g, ""],
+          [/ताज़ा अपडेट\s*:\s*/g, ""],
+        ]
+      : [
+          [/\bexclusive\b:?\s*/gi, ""],
+          [/\bbreaking\b:?\s*/gi, ""],
+        ];
+  for (const [re, to] of swaps) title = title.replace(re, to);
+
+  return title.slice(0, 200).trim();
+}
+
+function editorialSummary(rawSummary = "", title = "", lang = "hi", districtLabel = "") {
+  let summary = stripPublisherAttribution(stripHtml(rawSummary));
+  summary = summary.replace(/आलीराजपुर/g, "अलीराजपुर");
+  summary = summary.replace(/^आदिभूमि डेस्क(?:\s*की)?\s*(?:रिपोर्ट|report)?\s*[—\-–:]*\s*/i, "");
+  summary = summary.replace(/^According to the Adibhumi Desk,?\s*/i, "");
+  summary = summary.replace(/^Adibhumi Desk\s*[—\-–:]*\s*/i, "");
+
+  const titleNorm = title.replace(/\s+/g, " ").trim();
+  if (!summary || summary === titleNorm || titleNorm.includes(summary.slice(0, 40))) {
+    const place = districtLabel || (lang === "hi" ? "मालवा-निमाड़" : "Malwa–Nimad");
+    summary =
+      lang === "hi"
+        ? `आदिभूमि डेस्क: ${place} से जुड़ी यह खबर। ${titleNorm}`
+        : `Adibhumi Desk: Coverage from ${place}. ${titleNorm}`;
+  } else if (lang === "hi") {
+    summary = `आदिभूमि डेस्क रिपोर्ट — ${summary}`;
+  } else {
+    summary = `Adibhumi Desk — ${summary}`;
+  }
+
+  return stripPublisherAttribution(summary).slice(0, 360).trim();
+}
+
+function scrubPublisherFromBody(text = "") {
+  return stripPublisherAttribution(String(text || ""))
+    .replace(/(?:स्रोत|source|courtesy|via)\s*[:\-–—]\s*[^\n।.]{2,40}/gi, "")
+    .replace(/\b(?:read more|also read|और पढ़ें|यह भी पढ़ें)\b[^\n]{0,80}/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+/** Do not hotlink publisher photos — portal uses branded thumbs instead. */
+function pickImage() {
+  return null;
+}
+
 
 function hasDevanagari(text = "") {
   return /[\u0900-\u097F]/.test(text);
@@ -715,13 +854,14 @@ function toPublicItem(item, lang) {
 
   return {
     id: item.id,
-    title: item.title,
-    summary: item.summary,
-    image: item.image,
+    title: editorialTitle(item.title, lang),
+    summary: editorialSummary(item.summary, item.title, lang, districtMeta ? (lang === "en" ? districtMeta.en : districtMeta.hi) : ""),
+    image: null,
     publishedAt: item.publishedAt,
     lang: item.lang,
     category: lang === "en" ? item.categoryEn : item.category,
     portal: "आदिभूमि",
+    source: lang === "en" ? "Adibhumi" : "आदिभूमि",
     region: "mp-west",
     district: item.districtId || null,
     districtLabel: districtMeta ? (lang === "en" ? districtMeta.en : districtMeta.hi) : null,
@@ -741,9 +881,9 @@ function toPublicItem(item, lang) {
 }
 
 function normalizeItem(item, feed) {
-  const title = stripHtml(item.title || "").slice(0, 220);
+  const rawTitle = stripHtml(item.title || "");
   const link = item.link || item.guid || "";
-  if (!title || !link || !/^https?:/i.test(link)) return null;
+  if (!rawTitle || !link || !/^https?:/i.test(link)) return null;
 
   const publishedAt = item.isoDate
     ? new Date(item.isoDate).toISOString()
@@ -752,24 +892,25 @@ function normalizeItem(item, feed) {
       : null;
 
   const rawHtml = item.contentEncoded || item["content:encoded"] || item.content || "";
-  const summary = stripHtml(item.contentSnippet || item.summary || rawHtml || "").slice(0, 320);
-  const bodyText = stripHtml(rawHtml || summary).slice(0, 20000);
-  const bodyHtml = sanitizeHtml(rawHtml).slice(0, 40000);
+  const rawSummary = stripHtml(item.contentSnippet || item.summary || rawHtml || "").slice(0, 420);
+  const bodyTextRaw = stripHtml(rawHtml || rawSummary).slice(0, 20000);
+  const bodyHtmlRaw = sanitizeHtml(rawHtml).slice(0, 40000);
 
+  // Detect district from original text (before publisher strip / rewrite)
   if (!feed.allowMixedLang) {
-    if (feed.lang === "hi" && !hasDevanagari(title)) return null;
-    if (feed.lang === "en" && hasDevanagari(title)) return null;
+    if (feed.lang === "hi" && !hasDevanagari(rawTitle)) return null;
+    if (feed.lang === "en" && hasDevanagari(rawTitle)) return null;
   }
 
   const draft = {
-    title,
-    summary,
+    title: rawTitle,
+    summary: rawSummary,
     link,
   };
   let { score, district, division, tribalHit } = regionScore(draft, feed);
   if (feed.forceDistrictId) {
     const forced = COVERAGE.districts.find((d) => d.id === feed.forceDistrictId);
-    const hay = `${title} ${summary} ${link}`.toLowerCase();
+    const hay = `${rawTitle} ${rawSummary} ${link}`.toLowerCase();
     const mentionsForced =
       Boolean(forced) &&
       (district?.id === forced.id ||
@@ -784,8 +925,8 @@ function normalizeItem(item, feed) {
       return null;
     }
   }
-  const india = indiaScore(`${title} ${summary} ${link}`);
-  const breaking = isBreakingStory(`${title} ${summary}`);
+  const india = indiaScore(`${rawTitle} ${rawSummary} ${link}`);
+  const breaking = isBreakingStory(`${rawTitle} ${rawSummary}`);
   const isTribal =
     Boolean(tribalHit) ||
     Boolean(district && (TOP_FOCUS_DISTRICTS.has(district.id) || OTHER_TRIBAL_DISTRICTS.has(district.id)));
@@ -815,17 +956,24 @@ function normalizeItem(item, feed) {
     }
   }
 
+  const title = editorialTitle(rawTitle, feed.lang);
+  if (!title) return null;
+  const districtLabel = district ? (feed.lang === "en" ? district.en : district.hi) : "";
+  const summary = editorialSummary(rawSummary, title, feed.lang, districtLabel);
+  const bodyText = scrubPublisherFromBody(bodyTextRaw) || summary;
+  const bodyHtml = sanitizeHtml(String(bodyHtmlRaw || "").replace(PUBLISHER_NAME_RE, " "));
+
   const normalized = {
     id: makeArticleId(feed.id, link),
     title,
     summary,
-    bodyText: bodyText || summary,
-    bodyHtml: bodyHtml || "",
+    bodyText,
+    bodyHtml,
     link,
-    image: pickImage(item),
+    image: pickImage(),
     publishedAt,
-    source: feed.name,
-    sourceEn: feed.nameEn,
+    source: "आदिभूमि",
+    sourceEn: "Adibhumi",
     sourceId: feed.id,
     lang: feed.lang,
     category,
@@ -887,6 +1035,10 @@ function isNoiseParagraph(text, title = "") {
   if (/^(getty images|reuters|afp|ani|pti|विज्ञापन|advertisement|share|follow|subscribe)/i.test(t)) {
     return true;
   }
+  if (PUBLISHER_NAMES.some((p) => t.toLowerCase().includes(p.toLowerCase()) && t.length < 120)) {
+    return true;
+  }
+  if (/(?:स्रोत|source|courtesy|via)\s*[:\-–—]/i.test(t) && t.length < 140) return true;
   if (/^\d{1,2}\s+\S+\s+\d{4}/.test(t) && t.length < 90) return true;
   if (/IST\s*$/i.test(t) && t.length < 100) return true;
   if (/^(अपडेटेड|updated|published|last updated)/i.test(t) && t.length < 110) return true;
@@ -926,7 +1078,7 @@ function paragraphsFromHtml(html, title = "") {
   return blocks.slice(0, 40);
 }
 
-function buildCleanArticle(title, rawHtml, rawText) {
+function buildCleanArticle(title, rawHtml, rawText, lang = "hi") {
   let paras = paragraphsFromHtml(rawHtml || "", title);
   if (paras.length < 2 && rawText) {
     paras = String(rawText)
@@ -937,6 +1089,11 @@ function buildCleanArticle(title, rawHtml, rawText) {
       .slice(0, 40);
   }
 
+  paras = paras
+    .map((p) => scrubPublisherFromBody(p))
+    .map((p) => p.replace(/आलीराजपुर/g, "अलीराजपुर"))
+    .filter((p) => p && !isNoiseParagraph(p, title));
+
   if (paras[0] && title) {
     const lead = paras[0];
     if (lead === title || (lead.includes(title.slice(0, Math.min(20, title.length))) && lead.length < title.length + 40)) {
@@ -944,10 +1101,17 @@ function buildCleanArticle(title, rawHtml, rawText) {
     }
   }
 
+  // Desk framing — first paragraph presented as आदिभूमि rewrite
+  if (paras[0] && lang === "hi" && !/^आदिभूमि/.test(paras[0])) {
+    paras[0] = `आदिभूमि डेस्क की रिपोर्ट के अनुसार, ${paras[0].replace(/^आदिभूमि डेस्क[^\—\-–]*[\—\-–]\s*/i, "")}`;
+  } else if (paras[0] && lang === "en" && !/^Adibhumi/i.test(paras[0])) {
+    paras[0] = `According to the Adibhumi Desk, ${paras[0]}`;
+  }
+
   const escape = (p) => p.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const bodyHtml = paras.map((p) => `<p>${escape(p)}</p>`).join("\n");
   const bodyText = paras.join("\n\n");
-  const summary = (paras[0] || "").slice(0, 280);
+  const summary = editorialSummary(paras[0] || "", title, lang);
 
   return { bodyHtml, bodyText, summary, paragraphCount: paras.length };
 }
@@ -974,17 +1138,13 @@ async function fetchFullArticleFromUrl(url) {
     const article = new Readability(doc).parse();
     if (!article) return null;
 
-    const title = stripHtml(article.title || "");
-    const cleaned = buildCleanArticle(title, article.content || "", article.textContent || "");
+    const title = editorialTitle(article.title || "", "hi");
+    const cleaned = buildCleanArticle(title, article.content || "", article.textContent || "", "hi");
     if (cleaned.paragraphCount < 1 || cleaned.bodyText.length < 180) return null;
-
-    let image = null;
-    const og = doc.querySelector('meta[property="og:image"]');
-    if (og?.content) image = og.content;
 
     return {
       title,
-      image,
+      image: null,
       bodyHtml: cleaned.bodyHtml,
       bodyText: cleaned.bodyText,
       summary: cleaned.summary,
@@ -1244,7 +1404,7 @@ async function enrichArticle(item, { force = false } = {}) {
       bodyHtml: cached.bodyHtml,
       bodyText: cached.bodyText,
       summary: cached.summary || item.summary,
-      image: item.image || cached.image,
+      image: null,
       fullFetched: true,
     };
   }
@@ -1252,12 +1412,18 @@ async function enrichArticle(item, { force = false } = {}) {
   try {
     const full = await fetchFullArticleFromUrl(item.link);
     if (!full) {
-      const cleaned = buildCleanArticle(item.title, item.bodyHtml, item.bodyText || item.summary);
+      const cleaned = buildCleanArticle(
+        item.title,
+        item.bodyHtml,
+        item.bodyText || item.summary,
+        item.lang || "hi"
+      );
       return {
         ...item,
         bodyHtml: cleaned.bodyHtml || item.bodyHtml,
         bodyText: cleaned.bodyText || item.bodyText,
-        summary: cleaned.summary || item.summary,
+        summary: editorialSummary(cleaned.summary || item.summary, item.title, item.lang || "hi"),
+        image: null,
         fullFetched: cleaned.bodyText.length >= MIN_FULL_BODY_CHARS,
       };
     }
@@ -1265,8 +1431,8 @@ async function enrichArticle(item, { force = false } = {}) {
     const enriched = {
       bodyHtml: full.bodyHtml,
       bodyText: full.bodyText,
-      summary: full.summary || item.summary,
-      image: item.image || full.image || null,
+      summary: editorialSummary(full.summary || item.summary, item.title, item.lang || "hi"),
+      image: null,
       fetchedAt: Date.now(),
     };
     fullArticleCache.set(item.id, enriched);
@@ -1278,27 +1444,34 @@ async function enrichArticle(item, { force = false } = {}) {
         bodyHtml: enriched.bodyHtml,
         bodyText: enriched.bodyText,
         summary: enriched.summary,
-        image: cache.items[idx].image || enriched.image,
+        image: null,
         fullFetched: true,
       };
     }
 
     return {
       ...item,
+      title: editorialTitle(item.title, item.lang || "hi"),
       bodyHtml: enriched.bodyHtml,
       bodyText: enriched.bodyText,
       summary: enriched.summary,
-      image: item.image || enriched.image,
+      image: null,
       fullFetched: true,
     };
   } catch (err) {
     console.warn(`[adibhumi] full article fetch failed: ${item.sourceId}`, err.message);
-    const cleaned = buildCleanArticle(item.title, item.bodyHtml, item.bodyText || item.summary);
+    const cleaned = buildCleanArticle(
+      item.title,
+      item.bodyHtml,
+      item.bodyText || item.summary,
+      item.lang || "hi"
+    );
     return {
       ...item,
       bodyHtml: cleaned.bodyHtml || item.bodyHtml,
       bodyText: cleaned.bodyText || item.bodyText,
-      summary: cleaned.summary || item.summary,
+      summary: editorialSummary(cleaned.summary || item.summary, item.title, item.lang || "hi"),
+      image: null,
     };
   }
 }

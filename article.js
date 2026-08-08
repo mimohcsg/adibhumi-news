@@ -130,8 +130,8 @@
       <footer class="article-footer">
         <p>${
           hi
-            ? "यह कवरेज आदिभूमि न्यूज़ पोर्टल पर प्रकाशित है।"
-            : "This coverage is published on the Adibhumi news portal."
+            ? "आदिभूमि डेस्क द्वारा संपादित कवरेज।"
+            : "Edited coverage by the Adibhumi Desk."
         }</p>
       </footer>
     `;
