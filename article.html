@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>खबर | आदिभूमि</title>
+  <meta name="description" content="आदिभूमि पर पूरी खबर पढ़ें।">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@500;600;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="article-page">
+  <a class="skip-link" href="#articleMain">खबर पर जाएँ</a>
+
+  <header class="site-header">
+    <div class="top-bar">
+      <div class="container top-bar-inner">
+        <time id="liveDate" datetime=""></time>
+        <p class="top-tagline">मालवा · निमाड़ · आदिवासी आवाज़</p>
+        <div class="top-actions">
+          <a class="epaper-link" href="index.html">होम</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="brand-bar">
+      <div class="container brand-bar-inner">
+        <a class="brand" href="index.html" aria-label="आदिभूमि होम">
+          <span class="brand-mark" aria-hidden="true">आ</span>
+          <span class="brand-text">
+            <span class="brand-hi">आदिभूमि</span>
+            <span class="brand-en">WEST MP TRIBAL NEWS</span>
+          </span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main id="articleMain" class="article-shell container">
+    <a class="article-back" href="index.html" id="backLink">← वापस होम</a>
+
+    <article class="article-card" id="articleCard" aria-busy="true">
+      <p class="article-status" id="articleStatus">खबर लोड हो रही है…</p>
+    </article>
+
+    <section class="related-section" aria-labelledby="relatedTitle" hidden id="relatedSection">
+      <div class="section-head">
+        <h2 id="relatedTitle">और खबरें</h2>
+      </div>
+      <div class="related-grid" id="relatedGrid"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-bottom">
+      <p>© 2026 आदिभूमि डिजिटल</p>
+    </div>
+  </footer>
+
+  <script src="article.js"></script>
+</body>
+</html>

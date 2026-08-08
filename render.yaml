@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: adibhumi-news
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ADIBHUMI_STRICT_TLS
+        value: "0"

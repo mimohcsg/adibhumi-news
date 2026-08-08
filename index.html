@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>आदिभूमि | मालवा · निमाड़ · पश्चिम मप्र आदिवासी समाचार</title>
+  <meta name="description" content="आदिभूमि — पश्चिम मध्य प्रदेश की जनजातीय समुदायों, मालवा-निमाड़ और आदिवासी जिलों की ताज़ा हिंदी खबरें।">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@500;600;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">मुख्य खबरों पर जाएँ</a>
+
+  <header class="site-header">
+    <div class="top-bar">
+      <div class="container top-bar-inner">
+        <time id="liveDate" datetime=""></time>
+        <p class="top-tagline">मालवा · निमाड़ · झाबुआ · अलीराजपुर · पश्चिम मप्र</p>
+        <div class="top-actions">
+          <span class="live-status" id="liveStatus" aria-live="polite">
+            <span class="live-dot" aria-hidden="true"></span>
+            <span id="liveStatusText">लाइव फीड लोड हो रही है…</span>
+          </span>
+          <button type="button" class="lang-toggle" id="langToggle" aria-pressed="false">EN</button>
+          <button type="button" class="refresh-news" id="refreshNews" title="अभी अपडेट करें">↻</button>
+          <a class="epaper-link" href="epaper.html">ई-पेपर</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="brand-bar">
+      <div class="container brand-bar-inner">
+        <button type="button" class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="primaryNav" aria-label="मेनू खोलें">
+          <span></span><span></span><span></span>
+        </button>
+        <a class="brand" href="index.html" aria-label="आदिभूमि होम">
+          <span class="brand-mark" aria-hidden="true">आ</span>
+          <span class="brand-text">
+            <span class="brand-hi">आदिभूमि</span>
+            <span class="brand-en">WEST MP · MALWA NIMAD · TRIBAL NEWS</span>
+          </span>
+        </a>
+        <form class="search-form" role="search" action="#" method="get">
+          <label class="visually-hidden" for="q">खोजें</label>
+          <input id="q" name="q" type="search" placeholder="झाबुआ, अलीराजपुर, मालवा, निमाड़…" autocomplete="off">
+          <button type="submit">खोज</button>
+        </form>
+      </div>
+    </div>
+
+    <nav class="primary-nav" id="primaryNav" aria-label="मुख्य श्रेणियाँ">
+      <div class="container">
+        <ul>
+          <li><a class="is-active" href="#top">टॉप न्यूज़</a></li>
+          <li><a href="#local">आदिवासी ज़िले</a></li>
+          <li><a href="#live-feed">मालवा-निमाड़</a></li>
+          <li><a href="#business">बिजनेस</a></li>
+          <li><a href="#cricket">खेल</a></li>
+          <li><a href="#lifestyle">संस्कृति · जीवन</a></li>
+          <li><a href="#jobs">जॉब-एजुकेशन</a></li>
+          <li><a href="#opinion">ओपिनियन</a></li>
+        </ul>
+      </div>
+    </nav>
+  </header>
+
+  <div class="trending" aria-label="ट्रेंडिंग">
+    <div class="container trending-inner">
+      <span class="trending-label">ट्रेंडिंग न्यूज़</span>
+      <div class="trending-viewport">
+        <div class="trending-track" id="trendingTrack">
+          <span class="trending-placeholder">ताज़ा सुर्खियाँ लोड हो रही हैं…</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="heroTitle">
+      <div class="hero-media" id="heroMedia" role="img" aria-label="मुख्य खबर">
+        <div class="hero-media-wash"></div>
+      </div>
+      <div class="container hero-copy">
+        <p class="kicker" id="heroKicker">लाइव · आदिवासी · मालवा-निमाड़ · मप्र</p>
+        <h1 id="heroTitle">ताज़ा खबरें लोड हो रही हैं…</h1>
+        <p class="hero-deck" id="heroDeck">
+          पश्चिम मध्य प्रदेश की जनजातीय भूमि — झाबुआ, अलीराजपुर, धार, बड़वानी और मालवा-निमाड़ की ताज़ा खबरें।
+        </p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" id="heroLink" href="#live-feed">पूरी खबर पढ़ें</a>
+          <a class="btn btn-ghost" href="#live-feed">लाइव फ़ीड</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section container story-grid-section" aria-labelledby="topGridTitle">
+      <div class="section-head">
+        <h2 id="topGridTitle">टॉप न्यूज़ · अलीराजपुर · झाबुआ · धार · बड़वानी</h2>
+        <p class="section-meta" id="topGridMeta">टॉप 4 ज़िले → अन्य ज़िले → मप्र → भारत</p>
+      </div>
+      <div class="story-grid" id="topStoryGrid" aria-busy="true">
+        <article class="story story-skeleton story-feature" aria-hidden="true"><div class="story-thumb"></div><div class="story-body"><span class="chip">…</span><h3> </h3><p> </p></div></article>
+        <article class="story story-skeleton" aria-hidden="true"><div class="story-thumb"></div><div class="story-body"><span class="chip">…</span><h3> </h3></div></article>
+        <article class="story story-skeleton" aria-hidden="true"><div class="story-thumb"></div><div class="story-body"><span class="chip">…</span><h3> </h3></div></article>
+        <article class="story story-skeleton" aria-hidden="true"><div class="story-thumb"></div><div class="story-body"><span class="chip">…</span><h3> </h3></div></article>
+        <article class="story story-skeleton" aria-hidden="true"><div class="story-thumb"></div><div class="story-body"><span class="chip">…</span><h3> </h3></div></article>
+      </div>
+    </section>
+
+    <section class="section container" id="live-feed" aria-labelledby="liveFeedTitle">
+      <div class="section-head">
+        <h2 id="liveFeedTitle">प्राथमिकता फ़ीड</h2>
+        <p class="section-meta" id="liveFeedMeta">1) अलीराजपुर/झाबुआ/धार/बड़वानी · 2) अन्य · 3) मप्र · 4) भारत</p>
+      </div>
+      <div class="priority-feed" id="priorityFeed">
+        <div class="priority-block" data-tier="tribal">
+          <h3 class="priority-heading">१ · अलीराजपुर · झाबुआ · धार · बड़वानी</h3>
+          <ul class="live-feed-list" id="tribalFeedList"></ul>
+        </div>
+        <div class="priority-block" data-tier="mp">
+          <h3 class="priority-heading">२ · मध्य प्रदेश</h3>
+          <ul class="live-feed-list" id="mpFeedList"></ul>
+        </div>
+        <div class="priority-block" data-tier="india">
+          <h3 class="priority-heading">३ · भारत टॉप न्यूज़</h3>
+          <ul class="live-feed-list" id="indiaFeedList"></ul>
+        </div>
+      </div>
+      <ul class="live-feed-list visually-hidden" id="liveFeedList" aria-hidden="true"></ul>
+    </section>
+
+    <section class="section band" id="videos" aria-labelledby="videoTitle">
+      <div class="container">
+        <div class="section-head">
+          <h2 id="videoTitle">वीडियो · आदिभूमि कवरेज</h2>
+          <a class="see-all" href="#">और देखें</a>
+        </div>
+        <div class="video-row">
+          <article class="video-card">
+            <button type="button" class="video-play" aria-label="वीडियो चलाएँ">
+              <span class="play-icon" aria-hidden="true"></span>
+              <span class="video-dur">3:44</span>
+            </button>
+            <h3>एक्सप्लेनर: दिल्ली पुलिस कार्रवाई पर चार सवाल जो सिर्फ़ कानूनी नहीं, नैतिक भी हैं</h3>
+          </article>
+          <article class="video-card video-card-alt">
+            <button type="button" class="video-play" aria-label="वीडियो चलाएँ">
+              <span class="play-icon" aria-hidden="true"></span>
+              <span class="video-dur">2:30</span>
+            </button>
+            <h3>विज़ुअल गाइड: प्रदर्शन के पाँच दिनों की 45 तस्वीरें</h3>
+          </article>
+          <article class="video-card video-card-alt2">
+            <button type="button" class="video-play" aria-label="वीडियो चलाएँ">
+              <span class="play-icon" aria-hidden="true"></span>
+              <span class="video-dur">1:28</span>
+            </button>
+            <h3>संसद में हंगामा: दोनों सदन स्थगित, विपक्ष काले कपड़ों में</h3>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section container dual-rail" id="national" aria-labelledby="nationalTitle">
+      <div>
+        <div class="section-head">
+          <h2 id="nationalTitle">देश</h2>
+        </div>
+        <div class="rail-list">
+          <article>
+            <a href="#">
+              <h3>नड्डा बोले—कांग्रेस राज्यों में पेपर लीक पर जवाब दें; सदन में चर्चा को तैयार</h3>
+              <p>राहुल गांधी के आरोपों के जवाब में सत्तापक्ष का पलटवार।</p>
+            </a>
+          </article>
+          <article>
+            <a href="#">
+              <h3>सुप्रीम कोर्ट में सुनवाई से इनकार: चीफ जस्टिस बोले—वीडियो देखने का समय नहीं</h3>
+              <p>प्रदर्शनकारियों पर लाठीचार्ज की याचिका पर टिप्पणी।</p>
+            </a>
+          </article>
+          <article>
+            <a href="#">
+              <h3>मोदी से मिले शरद पवार, सुप्रिया साथ; छात्र आंदोलन और पुलिस व्यवहार पर चर्चा</h3>
+              <p>नेता प्रतिपक्ष के दौरे के बीच राजनीतिक गतिविधि तेज़।</p>
+            </a>
+          </article>
+          <article>
+            <a href="#">
+              <h3>ममता समर्थक विधायक को विधानसभा से बाहर किया; दिनभर निलंबन</h3>
+              <p>पश्चिम बंगाल विधानसभा में हंगामे की खबर।</p>
+            </a>
+          </article>
+        </div>
+      </div>
+      <aside class="opinion-panel" id="opinion" aria-labelledby="opinionTitle">
+        <h2 id="opinionTitle">ओपिनियन</h2>
+        <blockquote>
+          <p>“प्रदर्शन का हक लोकतंत्र की नींव है—लेकिन हिंसा किसी पक्ष को मज़बूत नहीं बनाती।”</p>
+          <footer>— आदिभूमि संपादकीय</footer>
+        </blockquote>
+        <ul class="mini-list">
+          <li><a href="#">क्या CJP प्रदर्शन राजनीतिक हाइजैक का शिकार हुआ?</a></li>
+          <li><a href="#">विश्व मीडिया की नज़र में भारत के छात्र आंदोलन</a></li>
+          <li><a href="#">पेपर लीक: सिस्टम सुधार के बिना बहस अधूरी</a></li>
+        </ul>
+      </aside>
+    </section>
+
+    <section class="section container" id="local" aria-labelledby="localTitle">
+      <div class="section-head">
+        <h2 id="localTitle">आदिवासी ज़िले · मालवा-निमाड़</h2>
+        <p class="section-meta" id="localMeta">झाबुआ / अलीराजपुर / धार / बड़वानी / खरगोन</p>
+      </div>
+      <div class="state-tabs" id="districtTabs" role="tablist" aria-label="क्षेत्र चुनें">
+        <button type="button" class="state-tab is-active" role="tab" aria-selected="true" data-filter="all">टॉप 4 ज़िले</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:alirajpur">अलीराजपुर</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:jhabua">झाबुआ</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:dhar">धार</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:barwani">बड़वानी</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:khargone">खरगोन</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:khandwa">खंडवा</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:ratlam">रतलाम</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:mandsaur">मंदसौर</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:neemuch">नीमच</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:burhanpur">बुरहानपुर</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="division:indore-div">इंदौर संभाग</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="division:ujjain-div">उज्जैन संभाग</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="mp">मध्य प्रदेश</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:indore">इंदौर</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:ujjain">उज्जैन</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:dewas">देवास</button>
+      </div>
+      <div class="state-panels">
+        <div class="state-panel is-active" id="districtPanel" role="tabpanel">
+          <p class="feed-empty" id="districtEmpty">क्षेत्रीय खबरें लोड हो रही हैं…</p>
+          <ul class="live-feed-list" id="districtFeedList"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section band-soft" id="business" aria-labelledby="bizTitle">
+      <div class="container">
+        <div class="section-head">
+          <h2 id="bizTitle">बिजनेस</h2>
+          <a class="see-all" href="#business">लाइव</a>
+        </div>
+        <div class="biz-grid" id="bizGrid" aria-busy="true">
+          <p class="feed-empty">बिजनेस खबरें लोड हो रही हैं…</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section container multi-cols" aria-label="और श्रेणियाँ">
+      <div id="cricket">
+        <h2>क्रिकेट</h2>
+        <ul class="mini-list" data-topic="cricket" aria-busy="true">
+          <li>स्पोर्ट्स खबरें लोड हो रही हैं…</li>
+        </ul>
+      </div>
+      <div id="entertainment">
+        <h2>बॉलीवुड</h2>
+        <ul class="mini-list" data-topic="entertainment" aria-busy="true">
+          <li>बॉलीवुड खबरें लोड हो रही हैं…</li>
+        </ul>
+      </div>
+      <div id="lifestyle">
+        <h2>लाइफस्टाइल</h2>
+        <ul class="mini-list" data-topic="lifestyle" aria-busy="true">
+          <li>लाइफस्टाइल खबरें लोड हो रही हैं…</li>
+        </ul>
+      </div>
+      <div id="jobs">
+        <h2>जॉब · एजुकेशन</h2>
+        <ul class="mini-list" data-topic="jobs" aria-busy="true">
+          <li>जॉब / एजुकेशन खबरें लोड हो रही हैं…</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section container" id="world" aria-labelledby="worldTitle">
+      <div class="section-head">
+        <h2 id="worldTitle">विदेश</h2>
+      </div>
+      <div class="world-strip" id="worldStrip" aria-busy="true">
+        <p class="feed-empty">विदेश खबरें लोड हो रही हैं…</p>
+      </div>
+    </section>
+
+    <section class="newsletter container" id="epaper" aria-labelledby="newsTitle">
+      <div class="newsletter-inner">
+        <div>
+          <h2 id="newsTitle">रोज़ाना आदिभूमि अपने इनबॉक्स में</h2>
+          <p>सुबह 7 बजे पश्चिम मप्र आदिवासी क्षेत्रों की ज़रूरी खबरें।</p>
+        </div>
+        <form class="newsletter-form" action="#" method="post">
+          <label class="visually-hidden" for="email">ईमेल</label>
+          <input id="email" type="email" name="email" placeholder="आपका ईमेल" required>
+          <button type="submit" class="btn btn-primary">सब्सक्राइब</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <a class="brand brand-footer" href="index.html" aria-label="आदिभूमि होम">
+          <span class="brand-mark" aria-hidden="true">आ</span>
+          <span class="brand-text">
+            <span class="brand-hi">आदिभूमि</span>
+            <span class="brand-en">WEST MP · MALWA NIMAD · TRIBAL NEWS</span>
+          </span>
+        </a>
+        <p class="footer-about">आदिभूमि — पश्चिम मध्य प्रदेश की जनजातीय समुदायों, मालवा-निमाड़ और आदिवासी ज़िलों की भरोसेमंद डिजिटल खबरें।</p>
+      </div>
+      <div>
+        <h3>श्रेणियाँ</h3>
+        <ul>
+          <li><a href="#top">टॉप न्यूज़</a></li>
+          <li><a href="#local">आदिवासी ज़िले</a></li>
+          <li><a href="#national">देश</a></li>
+          <li><a href="#cricket">खेल</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3>कंपनी</h3>
+        <ul>
+          <li><a href="#">हमारे बारे में</a></li>
+          <li><a href="#">विज्ञापन</a></li>
+          <li><a href="#">करियर</a></li>
+          <li><a href="#">संपर्क</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3>कानूनी</h3>
+        <ul>
+          <li><a href="#">गोपनीयता नीति</a></li>
+          <li><a href="#">नियम व शर्तें</a></li>
+          <li><a href="#">शिकायत निवारण</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <p>© 2026 आदिभूमि डिजिटल। पश्चिम मप्र जनजातीय समुदायों के लिए मूल हिंदी न्यूज़ प्रोटोटाइप — ब्रांड और कॉपी स्वतंत्र हैं।</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

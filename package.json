@@ -1,0 +1,19 @@
+{
+  "name": "adibhumi-news",
+  "version": "1.0.0",
+  "private": true,
+  "description": "आदिभूमि — Hindi news portal with live RSS aggregation",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.6.0",
+    "express": "^4.21.2",
+    "jsdom": "^29.1.1",
+    "rss-parser": "^3.13.0"
+  }
+}
