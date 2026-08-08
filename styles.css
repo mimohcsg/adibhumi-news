@@ -410,7 +410,7 @@ input {
   inset: 0;
   background:
     linear-gradient(120deg, rgba(18, 20, 26, 0.2), transparent 40%),
-    url("https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&w=1800&q=80")
+    url("https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1800&q=80")
       center / cover no-repeat;
   transform: scale(1.02);
   animation: heroDrift 18s ease-in-out infinite alternate;
@@ -734,23 +734,23 @@ input {
 
 .story-thumb-a {
   background-image: linear-gradient(135deg, rgba(18, 20, 26, 0.35), rgba(196, 30, 42, 0.35)),
-    url("https://images.unsplash.com/photo-1504711434719-321adfb4a903?auto=format&fit=crop&w=1000&q=80");
+    url("https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1000&q=80");
 }
 .story-thumb-b {
   background-image: linear-gradient(135deg, rgba(13, 107, 99, 0.35), rgba(18, 20, 26, 0.35)),
-    url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=800&q=80");
+    url("https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80");
 }
 .story-thumb-c {
   background-image: linear-gradient(135deg, rgba(18, 20, 26, 0.4), transparent),
-    url("https://images.unsplash.com/photo-1586339949916-3e9457bef6d3?auto=format&fit=crop&w=800&q=80");
+    url("https://images.unsplash.com/photo-1500937386664-56d1dfef3859?auto=format&fit=crop&w=800&q=80");
 }
 .story-thumb-d {
   background-image: linear-gradient(135deg, rgba(13, 107, 99, 0.4), transparent),
-    url("https://images.unsplash.com/photo-1534088568595-a066f410bcda?auto=format&fit=crop&w=800&q=80");
+    url("https://images.unsplash.com/photo-1501691223387-dd0500403074?auto=format&fit=crop&w=800&q=80");
 }
 .story-thumb-e {
   background-image: linear-gradient(135deg, rgba(196, 30, 42, 0.3), transparent),
-    url("https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&w=800&q=80");
+    url("https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80");
 }
 
 .story-body {

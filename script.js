@@ -50,18 +50,14 @@
 
   function sortByPriority(items) {
     return [...items].sort((a, b) => {
-      const ta = storyTierOf(a);
-      const tb = storyTierOf(b);
-      if (ta !== tb) return ta - tb;
-      if (ta === 1) {
-        const ra = TOP_FOCUS_ORDER[a.district] ?? 99;
-        const rb = TOP_FOCUS_ORDER[b.district] ?? 99;
-        if (ra !== rb) return ra - rb;
-      }
+      const tb = Date.parse(b.publishedAt || 0) || 0;
+      const ta = Date.parse(a.publishedAt || 0) || 0;
+      if (tb !== ta) return tb - ta;
+      if (Boolean(b.isBreaking) !== Boolean(a.isBreaking)) return a.isBreaking ? -1 : 1;
       const fb = b.frontScore || 0;
       const fa = a.frontScore || 0;
       if (fb !== fa) return fb - fa;
-      return Date.parse(b.publishedAt || 0) - Date.parse(a.publishedAt || 0);
+      return storyTierOf(a) - storyTierOf(b);
     });
   }
 
@@ -239,6 +235,7 @@
 
   function pickFrontStory(items) {
     if (!items?.length) return null;
+    // Newest story overall for the hero.
     return sortByPriority(items)[0];
   }
 
@@ -256,6 +253,7 @@
     if (heroKicker) {
       const tags = [];
       if (item.isBreaking) tags.push(hi ? "ब्रेकिंग" : "Breaking");
+      tags.push(hi ? "ताज़ा" : "Latest");
       if (item.isTopFocus || TOP_FOCUS_DISTRICTS.includes(item.district)) {
         tags.push(hi ? "टॉप ज़िला" : "Top district");
       } else if (item.isTribal || OTHER_TRIBAL_DISTRICTS.includes(item.district)) {
@@ -283,8 +281,9 @@
       heroLink.textContent = hi ? "पूरी खबर पढ़ें" : "Read full story";
     }
     if (heroMedia) {
-      if (item.image) {
-        heroMedia.style.backgroundImage = `linear-gradient(120deg, rgba(18,20,26,.72), rgba(18,20,26,.35)), url("${item.image}")`;
+      const img = item.image;
+      if (img) {
+        heroMedia.style.backgroundImage = `linear-gradient(120deg, rgba(18,20,26,.72), rgba(18,20,26,.35)), url("${img}")`;
         heroMedia.style.backgroundSize = "cover";
         heroMedia.style.backgroundPosition = "center";
       } else {
@@ -624,8 +623,8 @@
       renderWorld(items);
       setStatus(
         hi
-          ? `लाइव · आदिवासी→मप्र→भारत · ${formatTime(data.refreshedAt)} · अगला अपडेट 15 मि`
-          : `Live · tribal→MP→India · ${formatTime(data.refreshedAt)} · next in 15 min`
+          ? `लाइव · ताज़ा पहले · ${formatTime(data.refreshedAt)} · अगला अपडेट 15 मि`
+          : `Live · latest first · ${formatTime(data.refreshedAt)} · next in 15 min`
       );
     } catch (err) {
       console.error(err);

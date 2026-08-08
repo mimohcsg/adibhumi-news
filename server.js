@@ -679,9 +679,87 @@ function scrubPublisherFromBody(text = "") {
     .trim();
 }
 
-/** Do not hotlink publisher photos — portal uses branded thumbs instead. */
-function pickImage() {
-  return null;
+/** Thematic stock art — used only when the article has no photo of its own. */
+const THEME_IMAGES = {
+  politics:
+    "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&w=1600&q=80",
+  agriculture:
+    "https://images.unsplash.com/photo-1500937386664-56d1dfef3859?auto=format&fit=crop&w=1600&q=80",
+  tribal:
+    "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80",
+  weather:
+    "https://images.unsplash.com/photo-1501691223387-dd0500403074?auto=format&fit=crop&w=1600&q=80",
+  education:
+    "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1600&q=80",
+  sports:
+    "https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&w=1600&q=80",
+  business:
+    "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1600&q=80",
+  rural:
+    "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=80",
+};
+
+function themeKeyFromText(title = "", summary = "", districtId = "", topic = "") {
+  const hay = `${title} ${summary} ${topic}`.toLowerCase();
+  if (/कृषि|किसान|फसल|खेत|agriculture|farmer|crop|मंत्र(ी|ालय).*कृषि|कृषि.*मंत्र/.test(hay)) {
+    return "agriculture";
+  }
+  if (/क्रिकेट|खेलाड़ी|मैच|\bsport|ipl|टूर्नामेंट/.test(hay)) return "sports";
+  if (/बारिश|मौसम|वर्षा|बाढ़|सूखा|weather|rain|monsoon/.test(hay)) return "weather";
+  if (/शिक्षा|स्कूल|कॉलेज|परीक्षा|जॉब|नौकरी|education|exam|university/.test(hay)) {
+    return "education";
+  }
+  if (/बिजनेस|व्यापार|बाजार|share|business|market|economy/.test(hay)) return "business";
+  if (
+    /मंत्री|सांसद|विधानसभा|लोकसभा|सरकार|चुनाव|minister|\bmp\b|mla|meeting|मुलाकात|मांग|बैठक/.test(
+      hay
+    )
+  ) {
+    return "politics";
+  }
+  if (/आदिवासी|जनजाति|पर्व|त्योहार|tribal|festival|भील|दिवासा/.test(hay)) return "tribal";
+  if (districtId && (TOP_FOCUS_DISTRICTS.has(districtId) || OTHER_TRIBAL_DISTRICTS.has(districtId))) {
+    return "tribal";
+  }
+  return "rural";
+}
+
+function thematicImage(title, summary, districtId, topic) {
+  return THEME_IMAGES[themeKeyFromText(title, summary, districtId, topic)] || THEME_IMAGES.rural;
+}
+
+function isUsableImageUrl(url) {
+  if (!url || !/^https?:\/\//i.test(url)) return false;
+  const lower = String(url).toLowerCase();
+  // Skip tiny icons / tracking pixels / logos
+  if (/\.(svg)(\?|$)/i.test(lower)) return false;
+  if (/logo|sprite|icon|favicon|1x1|pixel/i.test(lower)) return false;
+  return true;
+}
+
+/** Prefer the story's own photo from RSS; fall back to a theme match (not a random parliament shot). */
+function pickImage(item, meta = {}) {
+  const candidates = [];
+  if (item.enclosure?.url) candidates.push(item.enclosure.url);
+  const media = item.mediaContent?.[0];
+  if (media?.$?.url) candidates.push(media.$.url);
+  if (typeof media === "object" && media?.url) candidates.push(media.url);
+  const thumb = item.mediaThumbnail?.[0];
+  if (thumb?.$?.url) candidates.push(thumb.$.url);
+  const html = item.contentEncoded || item["content:encoded"] || item.content || "";
+  const match = String(html).match(/<img[^>]+src=["']([^"']+)["']/i);
+  if (match?.[1]) candidates.push(match[1]);
+
+  for (const url of candidates) {
+    if (isUsableImageUrl(url)) return url;
+  }
+
+  return thematicImage(meta.title || item.title, meta.summary || "", meta.districtId, meta.topic);
+}
+
+function resolvePublicImage(item) {
+  if (isUsableImageUrl(item.image)) return item.image;
+  return thematicImage(item.title, item.summary, item.districtId, item.topic);
 }
 
 
@@ -796,13 +874,17 @@ function isBreakingStory(text = "") {
 function freshnessScore(publishedAt) {
   if (!publishedAt) return 0;
   const ageMs = Date.now() - Date.parse(publishedAt);
-  if (!Number.isFinite(ageMs) || ageMs < 0) return 8;
+  if (!Number.isFinite(ageMs)) return 0;
+  // Future-dated feeds: treat as brand-new, not "old".
+  if (ageMs < 0) return 120;
   const ageHours = ageMs / (60 * 60 * 1000);
-  if (ageHours <= 1) return 28;
-  if (ageHours <= 3) return 22;
-  if (ageHours <= 6) return 16;
-  if (ageHours <= 12) return 10;
-  if (ageHours <= 24) return 6;
+  if (ageHours <= 1) return 120;
+  if (ageHours <= 3) return 100;
+  if (ageHours <= 6) return 80;
+  if (ageHours <= 12) return 55;
+  if (ageHours <= 24) return 35;
+  if (ageHours <= 48) return 18;
+  if (ageHours <= 72) return 8;
   return 1;
 }
 
@@ -832,14 +914,14 @@ function districtRank(item) {
 
 function frontScore(item) {
   const tier = item.storyTier || storyTier(item);
-  const tierBoost = { 1: 280, 2: 140, 3: 75, 4: 28, 5: 0 }[tier] || 0;
-  const focusBoost = tier === 1 ? (4 - Math.min(districtRank(item), 3)) * 6 : 0;
-  const breaking = item.isBreaking ? (tier <= 3 ? 18 : 10) : 0;
-  const india = tier >= 4 ? item.indiaScore || 0 : Math.min(item.indiaScore || 0, 8);
-  const region = item.regionScore || 0;
+  // Recency dominates homepage order; district tier is a light boost only.
+  const tierBoost = { 1: 24, 2: 14, 3: 8, 4: 4, 5: 0 }[tier] || 0;
+  const focusBoost = tier === 1 ? (4 - Math.min(districtRank(item), 3)) * 2 : 0;
+  const breaking = item.isBreaking ? 30 : 0;
+  const india = tier >= 4 ? item.indiaScore || 0 : Math.min(item.indiaScore || 0, 6);
+  const region = Math.min(item.regionScore || 0, 40);
   const fresh = freshnessScore(item.publishedAt);
-  // Alirajpur/Jhabua/Dhar/Barwani first, then other districts, MP, India.
-  return tierBoost + focusBoost + region * 1.2 + india * 0.85 + breaking + fresh;
+  return fresh * 2.4 + tierBoost + focusBoost + region * 0.35 + india * 0.4 + breaking;
 }
 
 function toPublicItem(item, lang) {
@@ -856,7 +938,7 @@ function toPublicItem(item, lang) {
     id: item.id,
     title: editorialTitle(item.title, lang),
     summary: editorialSummary(item.summary, item.title, lang, districtMeta ? (lang === "en" ? districtMeta.en : districtMeta.hi) : ""),
-    image: null,
+    image: resolvePublicImage(item),
     publishedAt: item.publishedAt,
     lang: item.lang,
     category: lang === "en" ? item.categoryEn : item.category,
@@ -970,7 +1052,12 @@ function normalizeItem(item, feed) {
     bodyText,
     bodyHtml,
     link,
-    image: pickImage(),
+    image: pickImage(item, {
+      title,
+      summary,
+      districtId: district?.id,
+      topic: feed.topic || null,
+    }),
     publishedAt,
     source: "आदिभूमि",
     sourceEn: "Adibhumi",
@@ -1142,9 +1229,17 @@ async function fetchFullArticleFromUrl(url) {
     const cleaned = buildCleanArticle(title, article.content || "", article.textContent || "", "hi");
     if (cleaned.paragraphCount < 1 || cleaned.bodyText.length < 180) return null;
 
+    let image = null;
+    const og = doc.querySelector('meta[property="og:image"]');
+    if (og?.content && isUsableImageUrl(og.content)) image = og.content;
+    if (!image) {
+      const img = doc.querySelector("article img[src], .story-image img[src], main img[src]");
+      if (img?.src && isUsableImageUrl(img.src)) image = img.src;
+    }
+
     return {
       title,
-      image: null,
+      image,
       bodyHtml: cleaned.bodyHtml,
       bodyText: cleaned.bodyText,
       summary: cleaned.summary,
@@ -1404,7 +1499,7 @@ async function enrichArticle(item, { force = false } = {}) {
       bodyHtml: cached.bodyHtml,
       bodyText: cached.bodyText,
       summary: cached.summary || item.summary,
-      image: null,
+      image: item.image || cached.image || resolvePublicImage(item),
       fullFetched: true,
     };
   }
@@ -1423,16 +1518,21 @@ async function enrichArticle(item, { force = false } = {}) {
         bodyHtml: cleaned.bodyHtml || item.bodyHtml,
         bodyText: cleaned.bodyText || item.bodyText,
         summary: editorialSummary(cleaned.summary || item.summary, item.title, item.lang || "hi"),
-        image: null,
+        image: resolvePublicImage(item),
         fullFetched: cleaned.bodyText.length >= MIN_FULL_BODY_CHARS,
       };
     }
+
+    const storyImage =
+      (isUsableImageUrl(full.image) && full.image) ||
+      (isUsableImageUrl(item.image) && item.image) ||
+      resolvePublicImage({ ...item, summary: full.summary || item.summary });
 
     const enriched = {
       bodyHtml: full.bodyHtml,
       bodyText: full.bodyText,
       summary: editorialSummary(full.summary || item.summary, item.title, item.lang || "hi"),
-      image: null,
+      image: storyImage,
       fetchedAt: Date.now(),
     };
     fullArticleCache.set(item.id, enriched);
@@ -1444,7 +1544,7 @@ async function enrichArticle(item, { force = false } = {}) {
         bodyHtml: enriched.bodyHtml,
         bodyText: enriched.bodyText,
         summary: enriched.summary,
-        image: null,
+        image: enriched.image,
         fullFetched: true,
       };
     }
@@ -1455,7 +1555,7 @@ async function enrichArticle(item, { force = false } = {}) {
       bodyHtml: enriched.bodyHtml,
       bodyText: enriched.bodyText,
       summary: enriched.summary,
-      image: null,
+      image: enriched.image,
       fullFetched: true,
     };
   } catch (err) {
@@ -1471,7 +1571,7 @@ async function enrichArticle(item, { force = false } = {}) {
       bodyHtml: cleaned.bodyHtml || item.bodyHtml,
       bodyText: cleaned.bodyText || item.bodyText,
       summary: editorialSummary(cleaned.summary || item.summary, item.title, item.lang || "hi"),
-      image: null,
+      image: resolvePublicImage(item),
     };
   }
 }
@@ -1523,20 +1623,17 @@ async function refreshNews(force = false) {
       return true;
     })
     .sort((a, b) => {
-      const tierA = a.storyTier || storyTier(a);
-      const tierB = b.storyTier || storyTier(b);
-      if (tierA !== tierB) return tierA - tierB;
-      if (tierA === 1) {
-        const rankA = districtRank(a);
-        const rankB = districtRank(b);
-        if (rankA !== rankB) return rankA - rankB;
-      }
+      // Latest news first (primary).
+      const tPublishedB = b.publishedAt ? Date.parse(b.publishedAt) : 0;
+      const tPublishedA = a.publishedAt ? Date.parse(a.publishedAt) : 0;
+      if (tPublishedB !== tPublishedA) return tPublishedB - tPublishedA;
+      if (Boolean(b.isBreaking) !== Boolean(a.isBreaking)) return a.isBreaking ? -1 : 1;
       const fb = b.frontScore || frontScore(b);
       const fa = a.frontScore || frontScore(a);
       if (fb !== fa) return fb - fa;
-      const tPublishedB = b.publishedAt ? Date.parse(b.publishedAt) : 0;
-      const tPublishedA = a.publishedAt ? Date.parse(a.publishedAt) : 0;
-      return tPublishedB - tPublishedA;
+      const tierA = a.storyTier || storyTier(a);
+      const tierB = b.storyTier || storyTier(b);
+      return tierA - tierB;
     });
 
   cache = {
