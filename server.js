@@ -11,7 +11,7 @@ if (process.env.ADIBHUMI_STRICT_TLS !== "1") {
 }
 
 const PORT = Number(process.env.PORT) || 4174;
-const CACHE_MS = 15 * 60 * 1000;
+const CACHE_MS = 5 * 60 * 1000;
 const FULL_ARTICLE_CACHE_MS = 60 * 60 * 1000;
 const MIN_FULL_BODY_CHARS = 450;
 
@@ -962,16 +962,31 @@ function toPublicItem(item, lang) {
   };
 }
 
+function resolvePublishedAt(item) {
+  const candidates = [item.isoDate, item.pubDate, item.published, item.updated];
+  const now = Date.now();
+  for (const raw of candidates) {
+    if (!raw) continue;
+    const ms = Date.parse(raw);
+    if (!Number.isFinite(ms)) continue;
+    // Clamp wild future timestamps from some feeds.
+    const clamped = ms > now + 2 * 60 * 60 * 1000 ? now : ms;
+    return new Date(clamped).toISOString();
+  }
+  return null;
+}
+
+function itemTimeMs(item) {
+  const ms = Date.parse(item?.publishedAt || 0);
+  return Number.isFinite(ms) ? ms : 0;
+}
+
 function normalizeItem(item, feed) {
   const rawTitle = stripHtml(item.title || "");
   const link = item.link || item.guid || "";
   if (!rawTitle || !link || !/^https?:/i.test(link)) return null;
 
-  const publishedAt = item.isoDate
-    ? new Date(item.isoDate).toISOString()
-    : item.pubDate
-      ? new Date(item.pubDate).toISOString()
-      : null;
+  const publishedAt = resolvePublishedAt(item);
 
   const rawHtml = item.contentEncoded || item["content:encoded"] || item.content || "";
   const rawSummary = stripHtml(item.contentSnippet || item.summary || rawHtml || "").slice(0, 420);
@@ -1576,6 +1591,22 @@ async function enrichArticle(item, { force = false } = {}) {
   }
 }
 
+function sortNewsItems(items) {
+  return [...items].sort((a, b) => {
+    // Focus districts first as a pool, then strict newest-first.
+    const focusA = a.districtId && TOP_FOCUS_DISTRICTS.has(a.districtId) ? 0 : 1;
+    const focusB = b.districtId && TOP_FOCUS_DISTRICTS.has(b.districtId) ? 0 : 1;
+    if (focusA !== focusB) return focusA - focusB;
+
+    const tb = itemTimeMs(b);
+    const ta = itemTimeMs(a);
+    if (tb !== ta) return tb - ta;
+
+    if (Boolean(b.isBreaking) !== Boolean(a.isBreaking)) return a.isBreaking ? -1 : 1;
+    return (b.frontScore || 0) - (a.frontScore || 0);
+  });
+}
+
 async function refreshNews(force = false) {
   const now = Date.now();
   if (!force && cache.items.length && now < cache.expiresAt) {
@@ -1615,37 +1646,14 @@ async function refreshNews(force = false) {
   });
 
   const seen = new Set();
-  const deduped = items
-    .filter((item) => {
+  const deduped = sortNewsItems(
+    items.filter((item) => {
       const key = item.title.toLowerCase().replace(/\s+/g, " ").slice(0, 80);
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     })
-    .sort((a, b) => {
-      // Top-focus districts (Alirajpur/Jhabua/Dhar/Barwani) before everything else,
-      // then newest first within each group.
-      const focusA = a.districtId && TOP_FOCUS_DISTRICTS.has(a.districtId) ? 0 : 1;
-      const focusB = b.districtId && TOP_FOCUS_DISTRICTS.has(b.districtId) ? 0 : 1;
-      if (focusA !== focusB) return focusA - focusB;
-      if (focusA === 0) {
-        const rankA = districtRank(a);
-        const rankB = districtRank(b);
-        // Keep one-from-each ordering soft: still prefer newest overall among focus.
-        const tPublishedB = b.publishedAt ? Date.parse(b.publishedAt) : 0;
-        const tPublishedA = a.publishedAt ? Date.parse(a.publishedAt) : 0;
-        if (tPublishedB !== tPublishedA) return tPublishedB - tPublishedA;
-        if (rankA !== rankB) return rankA - rankB;
-      }
-      const tPublishedB = b.publishedAt ? Date.parse(b.publishedAt) : 0;
-      const tPublishedA = a.publishedAt ? Date.parse(a.publishedAt) : 0;
-      if (tPublishedB !== tPublishedA) return tPublishedB - tPublishedA;
-      if (Boolean(b.isBreaking) !== Boolean(a.isBreaking)) return a.isBreaking ? -1 : 1;
-      const fb = b.frontScore || frontScore(b);
-      const fa = a.frontScore || frontScore(a);
-      if (fb !== fa) return fb - fa;
-      return (a.storyTier || storyTier(a)) - (b.storyTier || storyTier(b));
-    });
+  );
 
   cache = {
     fetchedAt: now,
@@ -1750,6 +1758,9 @@ app.get("/api/news", async (req, res) => {
         filtered = filtered.filter((item) => item.districtId === district);
       }
     }
+
+    // Always re-sort at response time so newest focus stories stay on top.
+    filtered = sortNewsItems(filtered);
 
     const okFeeds = data.sources.filter((s) => {
       const feed = FEEDS.find((f) => f.id === s.id);

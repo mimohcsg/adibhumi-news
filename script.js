@@ -70,27 +70,9 @@
     return Boolean(item?.isTopFocus || TOP_FOCUS_DISTRICTS.includes(item?.district));
   }
 
-  /** Latest story from each of Alirajpur → Jhabua → Dhar → Barwani, then more focus news. */
+  /** Newest first among Alirajpur / Jhabua / Dhar / Barwani (no district lock-order). */
   function buildTopFocusRail(items) {
-    const focus = sortByRecency(items.filter(isTopFocusItem));
-    const picked = [];
-    const used = new Set();
-
-    for (const districtId of TOP_FOCUS_DISTRICTS) {
-      const latest = focus.find((item) => item.district === districtId && !used.has(item.id));
-      if (latest) {
-        picked.push(latest);
-        used.add(latest.id);
-      }
-    }
-
-    for (const item of focus) {
-      if (used.has(item.id)) continue;
-      picked.push(item);
-      used.add(item.id);
-    }
-
-    return picked;
+    return sortByRecency(items.filter(isTopFocusItem));
   }
 
   function splitByPriority(items) {
