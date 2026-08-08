@@ -1623,7 +1623,20 @@ async function refreshNews(force = false) {
       return true;
     })
     .sort((a, b) => {
-      // Latest news first (primary).
+      // Top-focus districts (Alirajpur/Jhabua/Dhar/Barwani) before everything else,
+      // then newest first within each group.
+      const focusA = a.districtId && TOP_FOCUS_DISTRICTS.has(a.districtId) ? 0 : 1;
+      const focusB = b.districtId && TOP_FOCUS_DISTRICTS.has(b.districtId) ? 0 : 1;
+      if (focusA !== focusB) return focusA - focusB;
+      if (focusA === 0) {
+        const rankA = districtRank(a);
+        const rankB = districtRank(b);
+        // Keep one-from-each ordering soft: still prefer newest overall among focus.
+        const tPublishedB = b.publishedAt ? Date.parse(b.publishedAt) : 0;
+        const tPublishedA = a.publishedAt ? Date.parse(a.publishedAt) : 0;
+        if (tPublishedB !== tPublishedA) return tPublishedB - tPublishedA;
+        if (rankA !== rankB) return rankA - rankB;
+      }
       const tPublishedB = b.publishedAt ? Date.parse(b.publishedAt) : 0;
       const tPublishedA = a.publishedAt ? Date.parse(a.publishedAt) : 0;
       if (tPublishedB !== tPublishedA) return tPublishedB - tPublishedA;
@@ -1631,9 +1644,7 @@ async function refreshNews(force = false) {
       const fb = b.frontScore || frontScore(b);
       const fa = a.frontScore || frontScore(a);
       if (fb !== fa) return fb - fa;
-      const tierA = a.storyTier || storyTier(a);
-      const tierB = b.storyTier || storyTier(b);
-      return tierA - tierB;
+      return (a.storyTier || storyTier(a)) - (b.storyTier || storyTier(b));
     });
 
   cache = {

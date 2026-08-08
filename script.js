@@ -48,7 +48,7 @@
     return 5;
   }
 
-  function sortByPriority(items) {
+  function sortByRecency(items) {
     return [...items].sort((a, b) => {
       const tb = Date.parse(b.publishedAt || 0) || 0;
       const ta = Date.parse(a.publishedAt || 0) || 0;
@@ -61,11 +61,41 @@
     });
   }
 
+  /** @deprecated use sortByRecency — kept for older call sites */
+  function sortByPriority(items) {
+    return sortByRecency(items);
+  }
+
+  function isTopFocusItem(item) {
+    return Boolean(item?.isTopFocus || TOP_FOCUS_DISTRICTS.includes(item?.district));
+  }
+
+  /** Latest story from each of Alirajpur → Jhabua → Dhar → Barwani, then more focus news. */
+  function buildTopFocusRail(items) {
+    const focus = sortByRecency(items.filter(isTopFocusItem));
+    const picked = [];
+    const used = new Set();
+
+    for (const districtId of TOP_FOCUS_DISTRICTS) {
+      const latest = focus.find((item) => item.district === districtId && !used.has(item.id));
+      if (latest) {
+        picked.push(latest);
+        used.add(latest.id);
+      }
+    }
+
+    for (const item of focus) {
+      if (used.has(item.id)) continue;
+      picked.push(item);
+      used.add(item.id);
+    }
+
+    return picked;
+  }
+
   function splitByPriority(items) {
-    const ordered = sortByPriority(items);
-    const topFour = ordered.filter(
-      (item) => item.isTopFocus || TOP_FOCUS_DISTRICTS.includes(item.district)
-    );
+    const ordered = sortByRecency(items);
+    const topFour = buildTopFocusRail(items);
     const otherRegional = ordered.filter(
       (item) =>
         !topFour.some((t) => t.id === item.id) &&
@@ -235,8 +265,10 @@
 
   function pickFrontStory(items) {
     if (!items?.length) return null;
-    // Newest story overall for the hero.
-    return sortByPriority(items)[0];
+    // Hero = newest among Alirajpur / Jhabua / Dhar / Barwani when available.
+    const focusRail = buildTopFocusRail(items);
+    if (focusRail.length) return focusRail[0];
+    return sortByRecency(items)[0];
   }
 
   function renderHero(item) {
@@ -295,32 +327,34 @@
 
   function filterByArea(items, filter = "all") {
     if (!filter || filter === "all") {
-      return sortByPriority(
+      return buildTopFocusRail(items);
+    }
+    if (filter === "mp") {
+      return sortByRecency(
+        items.filter((item) => item.isMpStatewide || item.district || (item.regionScore || 0) >= 8)
+      );
+    }
+    if (filter === "division:indore-div") {
+      return sortByRecency(
         items.filter(
-          (item) => item.isTopFocus || TOP_FOCUS_DISTRICTS.includes(item.district)
+          (item) =>
+            item.division === "indore-div" || INDORE_DIV_DISTRICTS.includes(item.district)
         )
       );
     }
-    if (filter === "mp") {
-      return items.filter((item) => item.isMpStatewide || item.district || (item.regionScore || 0) >= 8);
-    }
-    if (filter === "division:indore-div") {
-      return items.filter(
-        (item) =>
-          item.division === "indore-div" || INDORE_DIV_DISTRICTS.includes(item.district)
-      );
-    }
     if (filter === "division:ujjain-div") {
-      return items.filter(
-        (item) =>
-          item.division === "ujjain-div" || UJJAIN_DIV_DISTRICTS.includes(item.district)
+      return sortByRecency(
+        items.filter(
+          (item) =>
+            item.division === "ujjain-div" || UJJAIN_DIV_DISTRICTS.includes(item.district)
+        )
       );
     }
     if (filter.startsWith("district:")) {
       const id = filter.slice("district:".length);
-      return items.filter((item) => item.district === id);
+      return sortByRecency(items.filter((item) => item.district === id));
     }
-    return items;
+    return sortByRecency(items);
   }
 
   function renderDistrictFeed(items, filter = "all") {
@@ -392,6 +426,12 @@
     if (!topStoryGrid) return;
     const hi = getNewsLang() === "hi";
     const top = items.slice(0, 5);
+    if (topGridMeta) {
+      const focusN = items.filter(isTopFocusItem).length;
+      topGridMeta.textContent = hi
+        ? `अलीराजपुर · झाबुआ · धार · बड़वानी पहले (${focusN}) · ताज़ा क्रम`
+        : `Alirajpur · Jhabua · Dhar · Barwani first (${focusN}) · by latest`;
+    }
     if (!top.length) {
       topStoryGrid.innerHTML = `<p class="feed-empty">${
         hi ? "अभी टॉप न्यूज़ उपलब्ध नहीं।" : "No top stories available right now."
@@ -611,20 +651,27 @@
         return;
       }
 
-      const { ordered } = splitByPriority(items);
-      const front = pickFrontStory(ordered) || ordered[0];
+      const { ordered, topFour } = splitByPriority(items);
+      const front = pickFrontStory(items) || ordered[0];
+      const topRail = [
+        front,
+        ...topFour.filter((i) => i.id !== front.id),
+        ...ordered.filter(
+          (i) => i.id !== front.id && !topFour.some((t) => t.id === i.id)
+        ),
+      ];
       renderHero(front);
-      renderTrending(ordered);
-      renderTopGrid([front, ...ordered.filter((i) => i.id !== front.id)]);
-      renderLiveFeed(ordered, data);
+      renderTrending(topFour.length ? topFour : ordered);
+      renderTopGrid(topRail);
+      renderLiveFeed(items, data);
       renderDistrictFeed(items, activeFilter);
       renderTopicColumns(items);
       renderBusiness(items);
       renderWorld(items);
       setStatus(
         hi
-          ? `लाइव · ताज़ा पहले · ${formatTime(data.refreshedAt)} · अगला अपडेट 15 मि`
-          : `Live · latest first · ${formatTime(data.refreshedAt)} · next in 15 min`
+          ? `लाइव · टॉप 4 ज़िले · ताज़ा · ${formatTime(data.refreshedAt)} · अगला अपडेट 15 मि`
+          : `Live · top 4 districts · latest · ${formatTime(data.refreshedAt)} · next in 15 min`
       );
     } catch (err) {
       console.error(err);
