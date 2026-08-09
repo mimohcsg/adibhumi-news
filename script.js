@@ -78,9 +78,39 @@
     return sortByRecency(items.filter(isTopFocusItem));
   }
 
+  /**
+   * Round-robin Alirajpur → Jhabua → Dhar → Barwani so one district
+   * cannot bury the others in Top News / hero rail.
+   */
+  function buildInterleavedFocusRail(items) {
+    const pools = TOP_FOCUS_DISTRICTS.map((id) =>
+      sortByRecency(items.filter((item) => item.district === id))
+    );
+    const out = [];
+    const used = new Set();
+    let grew = true;
+    while (grew && out.length < 48) {
+      grew = false;
+      for (const pool of pools) {
+        const next = pool.find((item) => !used.has(item.id));
+        if (!next) continue;
+        out.push(next);
+        used.add(next.id);
+        grew = true;
+      }
+    }
+    // Any focus-tagged story missing a district id
+    for (const item of buildTopFocusRail(items)) {
+      if (used.has(item.id)) continue;
+      out.push(item);
+      used.add(item.id);
+    }
+    return out;
+  }
+
   function splitByPriority(items) {
     const ordered = sortByRecency(items);
-    const topFour = buildTopFocusRail(items);
+    const topFour = buildInterleavedFocusRail(items);
     const otherRegional = ordered.filter(
       (item) =>
         !topFour.some((t) => t.id === item.id) &&
@@ -250,8 +280,12 @@
 
   function pickFrontStory(items) {
     if (!items?.length) return null;
-    // Hero = newest among Alirajpur / Jhabua / Dhar / Barwani when available.
-    const focusRail = buildTopFocusRail(items);
+    // Prefer newest Alirajpur, else newest Jhabua, else other focus, else overall.
+    const alirajpur = sortByRecency(items.filter((i) => i.district === "alirajpur"));
+    if (alirajpur[0]) return alirajpur[0];
+    const jhabua = sortByRecency(items.filter((i) => i.district === "jhabua"));
+    if (jhabua[0]) return jhabua[0];
+    const focusRail = buildInterleavedFocusRail(items);
     if (focusRail.length) return focusRail[0];
     return sortByRecency(items)[0];
   }
@@ -335,7 +369,7 @@
 
   function filterByArea(items, filter = "all") {
     if (!filter || filter === "all") {
-      return buildTopFocusRail(items);
+      return buildInterleavedFocusRail(items);
     }
     if (filter === "mp") {
       return sortByRecency(
@@ -662,17 +696,19 @@
       }
 
       const { ordered, topFour } = splitByPriority(items);
-      const front = pickFrontStory(items) || ordered[0];
+      const interleaved = buildInterleavedFocusRail(items);
+      const front = pickFrontStory(items) || interleaved[0] || ordered[0];
+      const focusRail = interleaved.length ? interleaved : topFour;
       const topRail = [
         front,
-        ...topFour.filter((i) => i.id !== front.id),
+        ...focusRail.filter((i) => i.id !== front.id),
         ...ordered.filter(
-          (i) => i.id !== front.id && !topFour.some((t) => t.id === i.id)
+          (i) => i.id !== front.id && !focusRail.some((t) => t.id === i.id)
         ),
       ];
       renderHero(front);
       renderLeadRail(topRail, front?.id);
-      renderTrending(topFour.length ? topFour : ordered);
+      renderTrending(focusRail.length ? focusRail : ordered);
       renderTopGrid(topRail.filter((i) => i.id !== front?.id));
       renderLiveFeed(items, data);
       renderDistrictFeed(items, activeFilter);

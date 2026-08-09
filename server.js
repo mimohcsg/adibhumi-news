@@ -49,8 +49,27 @@ const COVERAGE = {
       hi: "झाबुआ",
       en: "Jhabua",
       division: "indore-div",
-      aliases: ["झाबुआ", "झाबूआ", "jhabua", "jhabua district"],
+      aliases: [
+        "झाबुआ",
+        "झाबूआ",
+        "झाबआ",
+        "jhabua",
+        "jhabua district",
+        "ठाण्डला",
+        "थांडला",
+        "thandla",
+        "पेटलावद",
+        "पेटलावाद",
+        "petlawad",
+        "रानापुर",
+        "ranapur",
+        "मेघनगर",
+        "meghnagar",
+        "रामा",
+        "rama jhabua",
+      ],
     },
+
     {
       id: "alirajpur",
       hi: "अलीराजपुर",
@@ -256,22 +275,22 @@ const FEEDS = [
     allowMixedLang: true,
     forceDistrictId: "alirajpur",
     url:
-      "https://news.google.com/rss/search?q=%22%E0%A4%85%E0%A4%B2%E0%A5%80%E0%A4%B0%E0%A4%BE%E0%A4%9C%E0%A4%AA%E0%A5%81%E0%A4%B0%22%20OR%20%22%E0%A4%86%E0%A4%B2%E0%A5%80%E0%A4%B0%E0%A4%BE%E0%A4%9C%E0%A4%AA%E0%A5%81%E0%A4%B0%22%20OR%20Alirajpur%20OR%20Jobat%20OR%20%22%E0%A4%9C%E0%A5%8B%E0%A4%AC%E0%A4%9F%22%20when:14d&hl=hi&gl=IN&ceid=IN:hi",
-    limit: 40,
+      "https://news.google.com/rss/search?q=(%22%E0%A4%85%E0%A4%B2%E0%A5%80%E0%A4%B0%E0%A4%BE%E0%A4%9C%E0%A4%AA%E0%A5%81%E0%A4%B0%22%20OR%20%22%E0%A4%86%E0%A4%B2%E0%A5%80%E0%A4%B0%E0%A4%BE%E0%A4%9C%E0%A4%AA%E0%A5%81%E0%A4%B0%22%20OR%20Alirajpur%20OR%20%22Ali%20Rajpur%22%20OR%20Jobat%20OR%20%22%E0%A4%9C%E0%A5%8B%E0%A4%AC%E0%A4%9F%22%20OR%20%22%E0%A4%AD%E0%A4%BE%E0%A4%AC%E0%A4%B0%E0%A4%BE%22%20OR%20Bhabra%20OR%20%22%E0%A4%B8%E0%A5%8B%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A4%B5%E0%A4%BE%22)%20(%E0%A4%AE%E0%A4%A7%E0%A5%8D%E0%A4%AF%20%E0%A4%AA%E0%A5%8D%E0%A4%B0%E0%A4%A6%E0%A5%87%E0%A4%B6%20OR%20%22Madhya%20Pradesh%22%20OR%20MP)%20when:21d&hl=hi&gl=IN&ceid=IN:hi",
+    limit: 50,
   },
   {
     id: "gnews-alirajpur-en",
     name: "गूगल न्यूज़",
     nameEn: "Google News",
-    lang: "en",
+    lang: "hi",
     region: "mp",
     category: "अलीराजपुर",
     categoryEn: "Alirajpur",
     allowMixedLang: true,
     forceDistrictId: "alirajpur",
     url:
-      "https://news.google.com/rss/search?q=%22Alirajpur%22%20OR%20%22Ali%20Rajpur%22%20OR%20%22Jobat%22%20OR%20%22Bhabra%22%20when:14d&hl=en-IN&gl=IN&ceid=IN:en",
-    limit: 35,
+      "https://news.google.com/rss/search?q=(%22Alirajpur%22%20OR%20%22Ali%20Rajpur%22%20OR%20%22Jobat%22%20OR%20%22Bhabra%22%20OR%20Sondwa)%20(%22Madhya%20Pradesh%22%20OR%20MP)%20when:21d&hl=en-IN&gl=IN&ceid=IN:en",
+    limit: 40,
   },
   {
     id: "gnews-jhabua-hi",
@@ -284,8 +303,22 @@ const FEEDS = [
     allowMixedLang: true,
     forceDistrictId: "jhabua",
     url:
-      "https://news.google.com/rss/search?q=%22%E0%A4%9D%E0%A4%BE%E0%A4%AC%E0%A5%81%E0%A4%86%22%20OR%20Jhabua%20when:14d&hl=hi&gl=IN&ceid=IN:hi",
-    limit: 25,
+      "https://news.google.com/rss/search?q=(%22%E0%A4%9D%E0%A4%BE%E0%A4%AC%E0%A5%81%E0%A4%86%22%20OR%20%22%E0%A4%9D%E0%A4%BE%E0%A4%AC%E0%A5%82%E0%A4%86%22%20OR%20Jhabua%20OR%20%22%E0%A4%A0%E0%A4%BE%E0%A4%A3%E0%A5%8D%E0%A4%A1%E0%A4%B2%E0%A4%BE%22%20OR%20Thandla%20OR%20%22%E0%A4%AA%E0%A5%87%E0%A4%9F%E0%A4%B2%E0%A4%BE%E0%A4%B5%E0%A4%A6%22%20OR%20Petlawad%20OR%20%22%E0%A4%AE%E0%A5%87%E0%A4%98%E0%A4%A8%E0%A4%97%E0%A4%B0%22%20OR%20Meghnagar)%20(%E0%A4%AE%E0%A4%A7%E0%A5%8D%E0%A4%AF%20%E0%A4%AA%E0%A5%8D%E0%A4%B0%E0%A4%A6%E0%A5%87%E0%A4%B6%20OR%20%22Madhya%20Pradesh%22%20OR%20MP)%20when:21d&hl=hi&gl=IN&ceid=IN:hi",
+    limit: 50,
+  },
+  {
+    id: "gnews-jhabua-en",
+    name: "गूगल न्यूज़",
+    nameEn: "Google News",
+    lang: "hi",
+    region: "mp",
+    category: "झाबुआ",
+    categoryEn: "Jhabua",
+    allowMixedLang: true,
+    forceDistrictId: "jhabua",
+    url:
+      "https://news.google.com/rss/search?q=(%22Jhabua%22%20OR%20Thandla%20OR%20Petlawad%20OR%20Meghnagar%20OR%20Ranapur)%20(%22Madhya%20Pradesh%22%20OR%20MP)%20when:21d&hl=en-IN&gl=IN&ceid=IN:en",
+    limit: 40,
   },
   {
     id: "gnews-barwani-hi",
@@ -1844,7 +1877,16 @@ app.get("/api/news/article", async (req, res) => {
   }
 });
 
-app.use(express.static(path.join(__dirname), { extensions: ["html"] }));
+app.use(
+  express.static(path.join(__dirname), {
+    extensions: ["html"],
+    setHeaders(res, filePath) {
+      if (/\.(?:html|js|css)$/i.test(filePath)) {
+        res.setHeader("Cache-Control", "no-cache");
+      }
+    },
+  })
+);
 
 app.listen(PORT, "0.0.0.0", async () => {
   console.log(`आदिभूमि running at http://localhost:${PORT}`);

@@ -208,7 +208,7 @@ input {
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 1rem;
-  padding: 0.65rem 0;
+  padding: 0.9rem 0;
 }
 
 .brand-hi {
@@ -306,15 +306,18 @@ input {
   color: inherit;
 }
 
-.brand-mark {
-  width: 46px;
-  height: 46px;
+.brand-logo {
+  height: 78px;
+  width: auto;
+  max-width: min(340px, 62vw);
   flex-shrink: 0;
   display: block;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: left center;
+  background: #fff;
+  padding: 0.2rem 0.35rem;
   border-radius: 6px;
-  border: 1px solid var(--line);
-  background: #e8f0e4;
+  filter: contrast(1.12) saturate(1.15);
 }
 
 .brand-text {
@@ -1327,9 +1330,13 @@ input {
   border-left-color: rgba(255, 255, 255, 0.35);
 }
 
-.brand-footer .brand-mark {
+.brand-footer .brand-logo {
+  height: 64px;
+  max-width: 280px;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
   background: #fff;
-  border-color: rgba(255, 255, 255, 0.35);
+  filter: contrast(1.12) saturate(1.15);
 }
 
 .footer-about {
@@ -1404,14 +1411,13 @@ input {
     grid-template-columns: auto 1fr;
   }
 
-  .brand-mark {
-    width: 40px;
-    height: 40px;
-    font-size: 1.15rem;
+  .brand-logo {
+    height: 58px;
+    max-width: min(240px, 68vw);
   }
 
-  .brand-hi {
-    font-size: 1.35rem;
+  .brand-text {
+    display: none;
   }
 
   .search-form {
