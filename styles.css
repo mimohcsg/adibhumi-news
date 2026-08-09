@@ -310,16 +310,11 @@ input {
   width: 46px;
   height: 46px;
   flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  border-radius: 4px;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.35rem;
-  line-height: 1;
-  color: #fff;
-  background: var(--crimson);
-  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.18);
+  display: block;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: #e8f0e4;
 }
 
 .brand-text {
@@ -1334,8 +1329,7 @@ input {
 
 .brand-footer .brand-mark {
   background: #fff;
-  color: var(--crimson-deep);
-  box-shadow: none;
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
 .footer-about {
