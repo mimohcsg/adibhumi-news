@@ -42,7 +42,7 @@ const COVERAGE = {
       hi: "धार",
       en: "Dhar",
       division: "indore-div",
-      aliases: ["धार जिला", "धार जिले", "dhar district", "धार", "dhar"],
+      aliases: ["धार जिला", "धार जिले", "धार जिले में", "dhar district", "धार", "dhar"],
     },
     {
       id: "jhabua",
@@ -1192,12 +1192,24 @@ function makeArticleId(feedId, link) {
   return Buffer.from(`${feedId}|${link}`).toString("base64url");
 }
 
+function escapeRegExp(value = "") {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function aliasMatches(hay, alias) {
   const a = String(alias).toLowerCase().trim();
   if (!a) return false;
   // Short Latin tokens (e.g. "dhar") need word boundaries to avoid false hits.
-  if (/^[a-z]{2,5}$/.test(a)) {
-    return new RegExp(`(?:^|[^a-z0-9])${a}(?:[^a-z0-9]|$)`, "i").test(hay);
+  if (/^[a-z0-9][a-z0-9\s-]{0,24}$/i.test(a) && !/[\u0900-\u097F]/.test(a)) {
+    return new RegExp(`(?:^|[^a-z0-9])${escapeRegExp(a)}(?:[^a-z0-9]|$)`, "i").test(hay);
+  }
+  // Short Hindi tokens: "धार" must not match "आधार" / "धार्मिक" / "धारा".
+  const graphemes = Array.from(a);
+  if (graphemes.length <= 3) {
+    return new RegExp(
+      `(?:^|[^\\u0900-\\u097F])${escapeRegExp(a)}(?:[^\\u0900-\\u097F]|$)`,
+      "u"
+    ).test(hay);
   }
   return hay.includes(a);
 }
@@ -1206,15 +1218,10 @@ function detectDistrict(text = "") {
   const hay = String(text).toLowerCase();
   let best = null;
   let bestLen = 0;
-  // Prefer longer aliases so "alirajpur district" / tehsil names beat short collisions.
-  const ordered = [...COVERAGE.districts].sort((a, b) => {
-    const ao = TOP_FOCUS_ORDER[a.id];
-    const bo = TOP_FOCUS_ORDER[b.id];
-    if (ao != null || bo != null) return (ao ?? 99) - (bo ?? 99);
-    return 0;
-  });
-  for (const district of ordered) {
-    for (const alias of district.aliases) {
+  // Prefer longer aliases so "धार जिला" wins over accidental short hits.
+  for (const district of COVERAGE.districts) {
+    const aliases = [...district.aliases].sort((a, b) => String(b).length - String(a).length);
+    for (const alias of aliases) {
       if (!aliasMatches(hay, alias)) continue;
       const len = String(alias).length;
       if (len > bestLen) {
@@ -1224,6 +1231,80 @@ function detectDistrict(text = "") {
     }
   }
   return best;
+}
+
+function isDeskTopicItem(item) {
+  return Boolean(item?.topic);
+}
+
+const MALWA_NIMAD_DISTRICTS = new Set([
+  ...TOP_FOCUS_DISTRICTS,
+  ...OTHER_TRIBAL_DISTRICTS,
+  ...WEST_MP_OTHER_DISTRICTS,
+]);
+
+function matchesTopicFilter(item, topic) {
+  if (!topic || topic === "all") return true;
+  const hay = `${item.title || ""} ${item.summary || ""} ${item.category || ""}`;
+
+  if (topic === "breaking") {
+    // Focus-district / breaking only — exclude national topic desks.
+    if (isDeskTopicItem(item)) return false;
+    return Boolean(item.isBreaking || item.isTopFocus || TOP_FOCUS_DISTRICTS.has(item.districtId));
+  }
+
+  if (topic === "local" || topic === "tribal") {
+    if (isDeskTopicItem(item)) return false;
+    return Boolean(
+      item.isTopFocus ||
+        TOP_FOCUS_DISTRICTS.has(item.districtId) ||
+        OTHER_TRIBAL_DISTRICTS.has(item.districtId)
+    );
+  }
+
+  if (topic === "malwa" || topic === "region") {
+    // West MP geography only — not Bollywood/sports desks mis-tagged via short aliases.
+    if (isDeskTopicItem(item)) return false;
+    if (item.divisionId === "indore-div" || item.divisionId === "ujjain-div") return true;
+    if (item.districtId && MALWA_NIMAD_DISTRICTS.has(item.districtId)) return true;
+    return /मालवा|निमाड़|निमाड|malwa|nimad|nimar/i.test(hay);
+  }
+
+  if (topic === "sports" || topic === "cricket") {
+    if (item.topic === "cricket" || item.topic === "sports") return true;
+    if (isDeskTopicItem(item)) return false;
+    return /क्रिकेट|खिलाड़ी|sport|ipl|मैच|टी.?20|फुटबॉल|हॉकी|बैडमिंटन|टेनिस|bcci|विश्व कप/i.test(
+      hay
+    );
+  }
+
+  if (topic === "business") {
+    return item.topic === "business";
+  }
+
+  if (topic === "lifestyle") {
+    return item.topic === "lifestyle" || item.topic === "entertainment";
+  }
+
+  if (topic === "jobs") {
+    return item.topic === "jobs";
+  }
+
+  if (topic === "entertainment") {
+    return item.topic === "entertainment";
+  }
+
+  if (topic === "opinion") {
+    if (item.topic === "opinion") return true;
+    if (isDeskTopicItem(item) && item.topic !== "world") return false;
+    return /ओपिनियन|opinion|संपादकीय|मत|कॉलम|editorial/i.test(hay);
+  }
+
+  if (topic === "world") {
+    return item.topic === "world" || Boolean(item.isIndia && !item.districtId);
+  }
+
+  return item.topic === topic;
 }
 
 function detectDivision(text = "", district = null) {
@@ -2242,47 +2323,7 @@ app.get("/api/news", async (req, res) => {
     let filtered = data.items.filter((item) => item.lang === lang);
 
     if (topic && topic !== "all") {
-      if (topic === "breaking") {
-        filtered = filtered.filter(
-          (item) => item.isBreaking || item.isTopFocus || TOP_FOCUS_DISTRICTS.has(item.districtId)
-        );
-      } else if (topic === "local" || topic === "tribal") {
-        filtered = filtered.filter(
-          (item) =>
-            item.isTopFocus ||
-            item.isTribal ||
-            TOP_FOCUS_DISTRICTS.has(item.districtId) ||
-            OTHER_TRIBAL_DISTRICTS.has(item.districtId)
-        );
-      } else if (topic === "malwa" || topic === "region") {
-        filtered = filtered.filter(
-          (item) =>
-            item.districtId ||
-            item.divisionId ||
-            item.isMpStatewide ||
-            (item.regionScore || 0) >= 8
-        );
-      } else if (topic === "sports" || topic === "cricket") {
-        filtered = filtered.filter(
-          (item) =>
-            item.topic === "cricket" ||
-            item.topic === "sports" ||
-            /क्रिकेट|खिलाड़ी|sport|ipl|मैच|टी.?20|फुटबॉल|हॉकी|बैडमिंटन|टेनिस|bcci|विश्व कप/i.test(
-              `${item.title || ""} ${item.summary || ""} ${item.category || ""}`
-            )
-        );
-      } else if (topic === "opinion") {
-        filtered = filtered.filter(
-          (item) =>
-            item.topic === "opinion" ||
-            /ओपिनियन|opinion|संपादकीय|मत|कॉलम|editorial/i.test(
-              `${item.title || ""} ${item.summary || ""} ${item.category || ""}`
-            ) ||
-            item.topic === "world"
-        );
-      } else {
-        filtered = filtered.filter((item) => item.topic === topic);
-      }
+      filtered = filtered.filter((item) => matchesTopicFilter(item, topic));
     } else if (district === "mp" || division === "mp") {
       // Statewide Madhya Pradesh stories (plus any tagged district in MP feeds).
       filtered = filtered.filter(
