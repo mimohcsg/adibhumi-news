@@ -712,7 +712,7 @@ function scrubPublisherFromBody(text = "") {
     .trim();
 }
 
-/** Thematic stock art — used only when the article has no photo of its own. */
+/** Thematic stock art — last resort only when the story page has no photo. */
 const THEME_IMAGES = {
   politics:
     "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&w=1600&q=80",
@@ -728,21 +728,35 @@ const THEME_IMAGES = {
     "https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&w=1600&q=80",
   business:
     "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1600&q=80",
+  crime:
+    "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=1600&q=80",
+  health:
+    "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1600&q=80",
+  festival:
+    "https://images.unsplash.com/photo-1604608672516-f1b2496c7c2b?auto=format&fit=crop&w=1600&q=80",
   rural:
     "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=80",
 };
 
+const THEME_IMAGE_SET = new Set(Object.values(THEME_IMAGES));
+const storyImageCache = new Map(); // link -> { image, canonicalLink, fetchedAt }
+const STORY_IMAGE_CACHE_MS = 6 * 60 * 60 * 1000;
+const GOOGLE_NEWS_BATCH = "https://news.google.com/_/DotsSplashUi/data/batchexecute";
+
 function themeKeyFromText(title = "", summary = "", districtId = "", topic = "") {
   const hay = `${title} ${summary} ${topic}`.toLowerCase();
-  if (/कृषि|किसान|फसल|खेत|agriculture|farmer|crop|मंत्र(ी|ालय).*कृषि|कृषि.*मंत्र/.test(hay)) {
-    return "agriculture";
-  }
-  if (/क्रिकेट|खेलाड़ी|मैच|\bsport|ipl|टूर्नामेंट/.test(hay)) return "sports";
-  if (/बारिश|मौसम|वर्षा|बाढ़|सूखा|weather|rain|monsoon/.test(hay)) return "weather";
-  if (/शिक्षा|स्कूल|कॉलेज|परीक्षा|जॉब|नौकरी|education|exam|university/.test(hay)) {
+  if (/कृषि|किसान|फसल|खेत|agriculture|farmer|crop|बीज|सिंचाई/.test(hay)) return "agriculture";
+  if (/क्रिकेट|खेलाड़ी|मैच|\bsport|ipl|टूर्नामेंट|फुटबॉल|हॉकी/.test(hay)) return "sports";
+  if (/बारिश|मौसम|वर्षा|बाढ़|सूखा|weather|rain|monsoon|तूफान/.test(hay)) return "weather";
+  if (/शिक्षा|स्कूल|कॉलेज|परीक्षा|जॉब|नौकरी|education|exam|university|छात्र/.test(hay)) {
     return "education";
   }
-  if (/बिजनेस|व्यापार|बाजार|share|business|market|economy/.test(hay)) return "business";
+  if (/बिजनेस|व्यापार|बाजार|share|business|market|economy|महंगाई/.test(hay)) return "business";
+  if (/हत्या|हड़ताल|पुलिस|अपराध|गिरफ्तार|crime|arrest|strike|विवाद|झगड़ा|हमला/.test(hay)) {
+    return "crime";
+  }
+  if (/अस्पताल|स्वास्थ्य|डॉक्टर|मरीज|health|hospital|covid|टीका/.test(hay)) return "health";
+  if (/पर्व|त्योहार|दिवासा|मेला|festival|celebration|पूजा/.test(hay)) return "festival";
   if (
     /मंत्री|सांसद|विधानसभा|लोकसभा|सरकार|चुनाव|minister|\bmp\b|mla|meeting|मुलाकात|मांग|बैठक/.test(
       hay
@@ -750,9 +764,9 @@ function themeKeyFromText(title = "", summary = "", districtId = "", topic = "")
   ) {
     return "politics";
   }
-  if (/आदिवासी|जनजाति|पर्व|त्योहार|tribal|festival|भील|दिवासा/.test(hay)) return "tribal";
+  if (/आदिवासी|जनजाति|भील|tribal|वनवासी/.test(hay)) return "tribal";
   if (districtId && (TOP_FOCUS_DISTRICTS.has(districtId) || OTHER_TRIBAL_DISTRICTS.has(districtId))) {
-    return "tribal";
+    return "rural";
   }
   return "rural";
 }
@@ -761,27 +775,82 @@ function thematicImage(title, summary, districtId, topic) {
   return THEME_IMAGES[themeKeyFromText(title, summary, districtId, topic)] || THEME_IMAGES.rural;
 }
 
+function isThematicImage(url) {
+  return Boolean(url && THEME_IMAGE_SET.has(url));
+}
+
 function isUsableImageUrl(url) {
   if (!url || !/^https?:\/\//i.test(url)) return false;
   const lower = String(url).toLowerCase();
-  // Skip tiny icons / tracking pixels / logos
   if (/\.(svg)(\?|$)/i.test(lower)) return false;
-  if (/logo|sprite|icon|favicon|1x1|pixel/i.test(lower)) return false;
+  if (/logo|sprite|icon|favicon|1x1|pixel|spacer|blank\.gif/i.test(lower)) return false;
+  // Google News placeholder / brand marks — not the story photo
+  if (/googleusercontent\.com\/j6_cofbogxh|gstatic\.com\/.*logo|lh3\.googleusercontent\.com\/.*s0-w300/i.test(lower)) {
+    return false;
+  }
   return true;
 }
 
-/** Prefer the story's own photo from RSS; fall back to a theme match (not a random parliament shot). */
+function absoluteUrl(maybeUrl, baseUrl) {
+  try {
+    return new URL(maybeUrl, baseUrl).toString();
+  } catch {
+    return null;
+  }
+}
+
+function extractImagesFromHtml(html = "", baseUrl = "") {
+  const out = [];
+  const push = (u) => {
+    const abs = absoluteUrl(u, baseUrl);
+    if (abs && isUsableImageUrl(abs)) out.push(abs);
+  };
+  const og = String(html).match(
+    /<meta[^>]+property=["']og:image(?::url)?["'][^>]+content=["']([^"']+)["']/i
+  );
+  if (og?.[1]) push(og[1]);
+  const og2 = String(html).match(
+    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image(?::url)?["']/i
+  );
+  if (og2?.[1]) push(og2[1]);
+  const tw = String(html).match(
+    /<meta[^>]+name=["']twitter:image(?::src)?["'][^>]+content=["']([^"']+)["']/i
+  );
+  if (tw?.[1]) push(tw[1]);
+  const tw2 = String(html).match(
+    /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image(?::src)?["']/i
+  );
+  if (tw2?.[1]) push(tw2[1]);
+  const imgs = String(html).matchAll(/<img[^>]+src=["']([^"']+)["']/gi);
+  for (const match of imgs) {
+    push(match[1]);
+    if (out.length >= 6) break;
+  }
+  return out;
+}
+
+/** Prefer the story's own photo from RSS; fall back to theme only if nothing else. */
 function pickImage(item, meta = {}) {
   const candidates = [];
   if (item.enclosure?.url) candidates.push(item.enclosure.url);
-  const media = item.mediaContent?.[0];
-  if (media?.$?.url) candidates.push(media.$.url);
-  if (typeof media === "object" && media?.url) candidates.push(media.url);
-  const thumb = item.mediaThumbnail?.[0];
-  if (thumb?.$?.url) candidates.push(thumb.$.url);
-  const html = item.contentEncoded || item["content:encoded"] || item.content || "";
-  const match = String(html).match(/<img[^>]+src=["']([^"']+)["']/i);
-  if (match?.[1]) candidates.push(match[1]);
+  if (item.enclosure?.$.url) candidates.push(item.enclosure.$.url);
+  const mediaList = []
+    .concat(item.mediaContent || [])
+    .concat(item["media:content"] || []);
+  for (const media of mediaList) {
+    if (media?.$?.url) candidates.push(media.$.url);
+    if (media?.url) candidates.push(media.url);
+  }
+  const thumbs = [].concat(item.mediaThumbnail || []).concat(item["media:thumbnail"] || []);
+  for (const thumb of thumbs) {
+    if (thumb?.$?.url) candidates.push(thumb.$.url);
+    if (thumb?.url) candidates.push(thumb.url);
+  }
+  if (item.image?.url) candidates.push(item.image.url);
+  if (typeof item.image === "string") candidates.push(item.image);
+
+  const html = item.contentEncoded || item["content:encoded"] || item.content || item.description || "";
+  candidates.push(...extractImagesFromHtml(html, item.link || ""));
 
   for (const url of candidates) {
     if (isUsableImageUrl(url)) return url;
@@ -791,8 +860,200 @@ function pickImage(item, meta = {}) {
 }
 
 function resolvePublicImage(item) {
+  if (isUsableImageUrl(item.image) && !isThematicImage(item.image)) return item.image;
   if (isUsableImageUrl(item.image)) return item.image;
   return thematicImage(item.title, item.summary, item.districtId, item.topic);
+}
+
+function isGoogleNewsUrl(url = "") {
+  return /news\.google\.com\/(rss\/)?articles\//i.test(url);
+}
+
+async function resolveGoogleNewsPublisherUrl(articleUrl) {
+  const articleId = String(articleUrl).split("/articles/")[1]?.split("?")[0];
+  if (!articleId) return null;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+  try {
+    const pageRes = await fetch(articleUrl, {
+      signal: controller.signal,
+      redirect: "follow",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        Accept: "text/html",
+        "Accept-Language": "hi-IN,hi;q=0.9,en;q=0.8",
+      },
+    });
+    const pageText = await pageRes.text();
+    const signature = pageText.match(/data-n-a-sg="([^"]+)"/)?.[1];
+    const timestamp = pageText.match(/data-n-a-ts="([^"]+)"/)?.[1];
+    if (!signature || !timestamp) return null;
+
+    const rpcInner = JSON.stringify([
+      "garturlreq",
+      [
+        ["X", "X", ["X", "X"], null, null, 1, 1, "IN:hi", null, 1, null, null, null, null, null, 0, 1],
+        "X",
+        "X",
+        1,
+        [1, 1, 1],
+        1,
+        1,
+        null,
+        0,
+        0,
+        null,
+        0,
+      ],
+      articleId,
+      Number(timestamp),
+      signature,
+    ]);
+    const fReq = JSON.stringify([[["Fbv4je", rpcInner, null, "generic"]]]);
+    const postRes = await fetch(GOOGLE_NEWS_BATCH, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        Referer: "https://news.google.com/",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      },
+      body: new URLSearchParams({ "f.req": fReq }).toString(),
+    });
+    let body = await postRes.text();
+    body = String(body || "").replace(/^\)\]\}'\s*/, "");
+    const lines = body.split(/\r?\n/);
+    if (lines[0] && /^\d+$/.test(lines[0].trim())) {
+      body = lines.slice(1).join("\n");
+    }
+    const envelopes = JSON.parse(body.trim());
+    for (const env of envelopes) {
+      if (Array.isArray(env) && env[0] === "wrb.fr" && env[1] === "Fbv4je") {
+        const payload = JSON.parse(env[2]);
+        if (Array.isArray(payload) && payload[0] === "garturlres" && typeof payload[1] === "string") {
+          return payload[1];
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("[adibhumi] google news resolve failed", err.message);
+  } finally {
+    clearTimeout(timer);
+  }
+  return null;
+}
+
+async function resolveCanonicalArticleUrl(link) {
+  if (!link) return null;
+  if (!isGoogleNewsUrl(link)) return canonicalArticleUrl(link);
+  const cached = storyImageCache.get(link);
+  if (cached?.canonicalLink) return cached.canonicalLink;
+  const resolved = await resolveGoogleNewsPublisherUrl(link);
+  return resolved ? canonicalArticleUrl(resolved) : null;
+}
+
+async function fetchStoryImageFromPage(url) {
+  if (!url) return null;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      redirect: "follow",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml",
+        "Accept-Language": "hi-IN,hi;q=0.9,en-US;q=0.8,en;q=0.7",
+      },
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    const images = extractImagesFromHtml(html, res.url);
+    return images[0] || null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function hydrateStoryImage(item) {
+  if (!item?.link) return item;
+  if (isUsableImageUrl(item.image) && !isThematicImage(item.image)) {
+    return { ...item, imageIsFallback: false };
+  }
+
+  const cached = storyImageCache.get(item.link);
+  if (cached && Date.now() - cached.fetchedAt < STORY_IMAGE_CACHE_MS && cached.image) {
+    return {
+      ...item,
+      image: cached.image,
+      canonicalLink: cached.canonicalLink || item.canonicalLink,
+      imageIsFallback: false,
+    };
+  }
+
+  try {
+    const publisherUrl = (await resolveCanonicalArticleUrl(item.link)) || item.link;
+    const image = await fetchStoryImageFromPage(publisherUrl);
+    if (isUsableImageUrl(image)) {
+      storyImageCache.set(item.link, {
+        image,
+        canonicalLink: publisherUrl,
+        fetchedAt: Date.now(),
+      });
+      return {
+        ...item,
+        image,
+        canonicalLink: publisherUrl,
+        imageIsFallback: false,
+      };
+    }
+  } catch (err) {
+    console.warn("[adibhumi] story image hydrate failed", err.message);
+  }
+
+  return {
+    ...item,
+    image: resolvePublicImage(item),
+    imageIsFallback: true,
+  };
+}
+
+async function mapPool(items, concurrency, worker) {
+  const results = new Array(items.length);
+  let next = 0;
+  async function run() {
+    while (next < items.length) {
+      const idx = next++;
+      results[idx] = await worker(items[idx], idx);
+    }
+  }
+  const runners = Array.from({ length: Math.min(concurrency, items.length) }, () => run());
+  await Promise.all(runners);
+  return results;
+}
+
+/** Pull real story photos for the homepage rail (Google News RSS rarely includes images). */
+async function hydrateNewsImages(items, { limit = 48, concurrency = 5 } = {}) {
+  const ranked = [...items].sort((a, b) => {
+    const fa = a.isTopFocus ? 0 : 1;
+    const fb = b.isTopFocus ? 0 : 1;
+    if (fa !== fb) return fa - fb;
+    return (b.frontScore || 0) - (a.frontScore || 0);
+  });
+  const need = ranked
+    .filter((item) => !item.image || isThematicImage(item.image) || item.imageIsFallback)
+    .slice(0, limit);
+  if (!need.length) return items;
+
+  const hydrated = await mapPool(need, concurrency, (item) => hydrateStoryImage(item));
+  const byId = new Map(hydrated.map((item) => [item.id, item]));
+  return items.map((item) => byId.get(item.id) || item);
 }
 
 
@@ -971,7 +1232,8 @@ function toPublicItem(item, lang) {
     id: item.id,
     title: editorialTitle(item.title, lang),
     summary: editorialSummary(item.summary, item.title, lang, districtMeta ? (lang === "en" ? districtMeta.en : districtMeta.hi) : ""),
-    image: resolvePublicImage(item),
+    image: isUsableImageUrl(item.image) ? item.image : resolvePublicImage(item),
+    imageIsFallback: Boolean(item.imageIsFallback || isThematicImage(item.image)),
     publishedAt: item.publishedAt,
     lang: item.lang,
     category: lang === "en" ? item.categoryEn : item.category,
@@ -1127,6 +1389,7 @@ function normalizeItem(item, feed) {
   normalized.storyTier = storyTier(normalized);
   normalized.frontScore = frontScore(normalized);
   normalized.fullFetched = bodyText.length >= MIN_FULL_BODY_CHARS;
+  normalized.imageIsFallback = isThematicImage(normalized.image);
   return normalized;
 }
 
@@ -1594,13 +1857,21 @@ async function enrichArticle(item, { force = false } = {}) {
       bodyHtml: cached.bodyHtml,
       bodyText: cached.bodyText,
       summary: cached.summary || item.summary,
-      image: item.image || cached.image || resolvePublicImage(item),
+      image:
+        (isUsableImageUrl(item.image) && !isThematicImage(item.image) && item.image) ||
+        cached.image ||
+        resolvePublicImage(item),
+      imageIsFallback: false,
       fullFetched: true,
     };
   }
 
   try {
-    const full = await fetchFullArticleFromUrl(item.link);
+    const publisherUrl =
+      item.canonicalLink ||
+      (await resolveCanonicalArticleUrl(item.link)) ||
+      item.link;
+    const full = await fetchFullArticleFromUrl(publisherUrl);
     if (!full) {
       const cleaned = buildCleanArticle(
         item.title,
@@ -1608,19 +1879,21 @@ async function enrichArticle(item, { force = false } = {}) {
         item.bodyText || item.summary,
         item.lang || "hi"
       );
+      const hydrated = await hydrateStoryImage(item);
       return {
         ...item,
+        ...hydrated,
         bodyHtml: cleaned.bodyHtml || item.bodyHtml,
         bodyText: cleaned.bodyText || item.bodyText,
         summary: editorialSummary(cleaned.summary || item.summary, item.title, item.lang || "hi"),
-        image: resolvePublicImage(item),
         fullFetched: cleaned.bodyText.length >= MIN_FULL_BODY_CHARS,
       };
     }
 
     const storyImage =
       (isUsableImageUrl(full.image) && full.image) ||
-      (isUsableImageUrl(item.image) && item.image) ||
+      (isUsableImageUrl(item.image) && !isThematicImage(item.image) && item.image) ||
+      (await fetchStoryImageFromPage(publisherUrl)) ||
       resolvePublicImage({ ...item, summary: full.summary || item.summary });
 
     const enriched = {
@@ -1640,6 +1913,8 @@ async function enrichArticle(item, { force = false } = {}) {
         bodyText: enriched.bodyText,
         summary: enriched.summary,
         image: enriched.image,
+        canonicalLink: publisherUrl,
+        imageIsFallback: isThematicImage(enriched.image),
         fullFetched: true,
       };
     }
@@ -1651,6 +1926,8 @@ async function enrichArticle(item, { force = false } = {}) {
       bodyText: enriched.bodyText,
       summary: enriched.summary,
       image: enriched.image,
+      canonicalLink: publisherUrl,
+      imageIsFallback: isThematicImage(enriched.image),
       fullFetched: true,
     };
   } catch (err) {
@@ -1661,12 +1938,13 @@ async function enrichArticle(item, { force = false } = {}) {
       item.bodyText || item.summary,
       item.lang || "hi"
     );
+    const hydrated = await hydrateStoryImage(item);
     return {
       ...item,
+      ...hydrated,
       bodyHtml: cleaned.bodyHtml || item.bodyHtml,
       bodyText: cleaned.bodyText || item.bodyText,
       summary: editorialSummary(cleaned.summary || item.summary, item.title, item.lang || "hi"),
-      image: resolvePublicImage(item),
     };
   }
 }
@@ -1735,23 +2013,46 @@ async function refreshNews(force = false) {
     })
   );
 
+  let withImages = deduped;
+  try {
+    // Await a first wave so Top News / hero get real story photos quickly.
+    withImages = await hydrateNewsImages(deduped, { limit: 28, concurrency: 6 });
+    withImages = sortNewsItems(withImages);
+  } catch (err) {
+    console.warn("[adibhumi] image hydrate failed", err.message);
+  }
+
   cache = {
     fetchedAt: now,
     expiresAt: now + CACHE_MS,
     nextRefreshMs: CACHE_MS,
-    items: deduped,
+    items: withImages,
     sources,
     errors,
   };
 
+  // Continue filling photos for the rest of the feed without blocking the response.
+  hydrateNewsImages(withImages, { limit: 60, concurrency: 4 })
+    .then((more) => {
+      if (cache.fetchedAt !== now) return;
+      cache.items = sortNewsItems(more);
+      try {
+        archiveDailyNews(cache.items);
+      } catch {
+        /* ignore */
+      }
+    })
+    .catch((err) => console.warn("[adibhumi] background image hydrate failed", err.message));
+
   try {
-    archiveDailyNews(deduped);
+    archiveDailyNews(withImages);
   } catch (err) {
     console.warn("[adibhumi] e-paper archive failed", err.message);
   }
 
+  const realPhotos = withImages.filter((i) => i.image && !isThematicImage(i.image)).length;
   console.log(
-    `[adibhumi] refreshed ${deduped.length} stories from ${sources.filter((s) => s.ok).length}/${FEEDS.length} sources`
+    `[adibhumi] refreshed ${withImages.length} stories (${realPhotos} with story photos) from ${sources.filter((s) => s.ok).length}/${FEEDS.length} sources`
   );
   return cache;
 }
