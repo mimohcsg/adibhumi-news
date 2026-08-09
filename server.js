@@ -1496,19 +1496,67 @@ function buildEpaperEdition(dayKey, lang = "hi") {
       };
     });
 
-  const top = items.slice(0, 8);
+  const focusIds = ["alirajpur", "jhabua", "dhar", "barwani"];
+  const focus = items.filter((i) => focusIds.includes(i.district));
+  const tribal = items.filter(
+    (i) =>
+      !focusIds.includes(i.district) &&
+      ["khargone", "khandwa", "burhanpur", "ratlam", "mandsaur", "neemuch"].includes(i.district)
+  );
   const indoreDiv = items.filter((i) => i.division === "indore-div" || i.district === "indore");
   const ujjainDiv = items.filter(
     (i) => i.division === "ujjain-div" || ["ujjain", "dewas"].includes(i.district)
   );
-  const dewas = items.filter((i) => i.district === "dewas");
   const mp = items.filter((i) => i.isMpStatewide || (!i.district && !i.division));
-  const used = new Set([...top, ...indoreDiv, ...ujjainDiv, ...dewas, ...mp].map((i) => i.id));
+  const top = [...focus, ...items.filter((i) => !focus.some((f) => f.id === i.id))].slice(0, 12);
+  const used = new Set([...top, ...focus, ...tribal, ...indoreDiv, ...ujjainDiv, ...mp].map((i) => i.id));
   const more = items.filter((i) => !used.has(i.id));
+
+  const pages = [
+    {
+      id: "front",
+      number: 1,
+      label: lang === "en" ? "Front page" : "मुख्य पृष्ठ",
+      kicker: lang === "en" ? "Top headlines" : "बड़ी खबरें",
+      items: top,
+    },
+    {
+      id: "tribal",
+      number: 2,
+      label: lang === "en" ? "Tribal districts" : "आदिवासी ज़िले",
+      kicker: lang === "en" ? "Alirajpur · Jhabua · Dhar · Barwani" : "अलीराजपुर · झाबुआ · धार · बड़वानी",
+      items: [...focus, ...tribal].slice(0, 20),
+    },
+    {
+      id: "region",
+      number: 3,
+      label: lang === "en" ? "Malwa–Nimad" : "मालवा-निमाड़",
+      kicker: lang === "en" ? "Indore & Ujjain divisions" : "इंदौर व उज्जैन संभाग",
+      items: [...indoreDiv, ...ujjainDiv]
+        .filter((i, idx, arr) => arr.findIndex((x) => x.id === i.id) === idx)
+        .slice(0, 20),
+    },
+    {
+      id: "mp",
+      number: 4,
+      label: lang === "en" ? "Madhya Pradesh" : "मध्य प्रदेश",
+      kicker: lang === "en" ? "Statewide desk" : "राज्य डेस्क",
+      items: mp.slice(0, 20),
+    },
+    {
+      id: "more",
+      number: 5,
+      label: lang === "en" ? "More news" : "और खबरें",
+      kicker: lang === "en" ? "Also in today's edition" : "आज के संस्करण में और",
+      items: more.slice(0, 24),
+    },
+  ].filter((page) => page.items.length > 0)
+    .map((page, index) => ({ ...page, number: index + 1 }));
 
   return {
     brand: "आदिभूमि",
     title: lang === "en" ? "Adibhumi E-Paper" : "आदिभूमि ई-पेपर",
+    editionName: lang === "en" ? "West MP Morning Edition" : "पश्चिम मप्र संस्करण",
     focus: lang === "en" ? COVERAGE.labelEn : COVERAGE.labelHi,
     dayKey,
     dateLabel: formatIstLong(dayKey, lang),
@@ -1526,14 +1574,13 @@ function buildEpaperEdition(dayKey, lang = "hi") {
     count: items.length,
     updatedAt: archive.updatedAt,
     finalizedAt: archive.finalizedAt || null,
-    sections: [
-      { id: "top", title: lang === "en" ? "Top Stories" : "मुख्य खबरें", items: top },
-      { id: "indore", title: lang === "en" ? "Indore Division" : "इंदौर संभाग", items: indoreDiv.slice(0, 16) },
-      { id: "ujjain", title: lang === "en" ? "Ujjain Division" : "उज्जैन संभाग", items: ujjainDiv.slice(0, 16) },
-      { id: "dewas", title: lang === "en" ? "Dewas" : "देवास", items: dewas.slice(0, 10) },
-      { id: "mp", title: lang === "en" ? "Madhya Pradesh" : "मध्य प्रदेश", items: mp.slice(0, 18) },
-      { id: "more", title: lang === "en" ? "More News" : "और खबरें", items: more.slice(0, 24) },
-    ].filter((section) => section.items.length > 0),
+    pages,
+    // Keep sections for older clients
+    sections: pages.map((page) => ({
+      id: page.id,
+      title: page.label,
+      items: page.items,
+    })),
   };
 }
 

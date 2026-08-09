@@ -4,27 +4,33 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ई-पेपर | आदिभूमि</title>
-  <meta name="description" content="आदिभूमि दैनिक ई-पेपर — दिन भर की खबरें, कटऑफ रात 11:59।">
+  <meta name="description" content="आदिभूमि दैनिक हिंदी ई-पेपर — अखबार जैसा पृष्ठ लेआउट, पश्चिम मप्र की खबरें।">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@500;600;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@500;600;700;800&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="assets/adibhumi-mark.png">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20260809ep">
 </head>
 <body class="epaper-page">
   <header class="epaper-toolbar no-print">
-    <div class="container epaper-toolbar-inner">
-      <a class="brand" href="index.html" aria-label="आदिभूमि होम">
-          <img class="brand-logo" src="assets/adibhumi-logo.png" width="280" height="64" alt="आदिभूमि" />
-          <span class="brand-text">
-            <span class="brand-en">E-PAPER · WEST MP</span>
-          </span>
+    <div class="epaper-toolbar-inner">
+      <a class="epaper-brand" href="index.html" aria-label="आदिभूमि होम">
+        <img src="assets/adibhumi-logo.png" width="180" height="54" alt="आदिभूमि" />
+        <span>
+          <strong>ई-पेपर</strong>
+          <small>हिंदी अखबार प्रारूप</small>
+        </span>
       </a>
+
+      <nav class="epaper-page-nav" id="epaperPageNav" aria-label="पेज चुनें"></nav>
+
       <div class="epaper-actions">
         <label class="epaper-date-label">
           <span>तारीख</span>
           <select id="epaperDate"></select>
         </label>
+        <button type="button" class="btn btn-ghost" id="epaperPrev" aria-label="पिछला पेज">‹</button>
+        <button type="button" class="btn btn-ghost" id="epaperNext" aria-label="अगला पेज">›</button>
         <button type="button" class="btn btn-ghost" id="epaperLang">EN</button>
         <button type="button" class="btn btn-primary" id="epaperPrint">प्रिंट / PDF</button>
         <a class="btn btn-ghost" href="index.html">होम</a>
@@ -32,10 +38,10 @@
     </div>
   </header>
 
-  <main class="epaper-sheet container" id="epaperRoot" aria-busy="true">
+  <main class="epaper-stage" id="epaperRoot" aria-busy="true">
     <p class="epaper-loading" id="epaperLoading">ई-पेपर तैयार हो रहा है…</p>
   </main>
 
-  <script src="epaper.js"></script>
+  <script src="epaper.js?v=20260809ep"></script>
 </body>
 </html>
