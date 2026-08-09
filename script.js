@@ -14,6 +14,9 @@
   const heroKicker = document.getElementById("heroKicker");
   const heroLink = document.getElementById("heroLink");
   const heroMedia = document.getElementById("heroMedia");
+  const heroReadLabel = document.getElementById("heroReadLabel");
+  const leadRailList = document.getElementById("leadRailList");
+  const leadRailTitle = document.getElementById("leadRailTitle");
   const topStoryGrid = document.getElementById("topStoryGrid");
   const topGridMeta = document.getElementById("topGridMeta");
   const liveFeedList = document.getElementById("liveFeedList");
@@ -265,39 +268,29 @@
           : "Alirajpur, Jhabua, Dhar, Barwani first — then other districts, MP, and India.");
     }
     if (heroKicker) {
-      const tags = [];
-      if (item.isBreaking) tags.push(hi ? "ब्रेकिंग" : "Breaking");
-      tags.push(hi ? "ताज़ा" : "Latest");
-      if (item.isTopFocus || TOP_FOCUS_DISTRICTS.includes(item.district)) {
-        tags.push(hi ? "टॉप ज़िला" : "Top district");
-      } else if (item.isTribal || OTHER_TRIBAL_DISTRICTS.includes(item.district)) {
-        tags.push(hi ? "आदिवासी ज़िला" : "Tribal district");
-      } else if (item.isMpStatewide) {
-        tags.push(hi ? "मध्य प्रदेश" : "Madhya Pradesh");
-      } else if (item.isIndia) {
-        tags.push(hi ? "भारत" : "India");
-      }
       const place =
         item.districtLabel ||
         item.divisionLabel ||
         (item.isMpStatewide ? (hi ? "मध्य प्रदेश" : "Madhya Pradesh") : null) ||
-        (item.isIndia ? (hi ? "भारत" : "India") : null) ||
         (hi ? "मालवा-निमाड़" : "Malwa–Nimad");
+      const tags = [];
+      if (item.isBreaking) tags.push(hi ? "ब्रेकिंग" : "Breaking");
+      tags.push(hi ? "टॉप" : "Top");
       tags.push(place);
-      heroKicker.textContent = hi
-        ? `लाइव · आदिभूमि · ${tags.join(" · ")}`
-        : `Live · Adibhumi · ${tags.join(" · ")}`;
+      heroKicker.textContent = tags.join(" · ");
     }
     if (heroLink) {
       heroLink.href = articleHref(item);
       heroLink.removeAttribute("target");
       heroLink.removeAttribute("rel");
-      heroLink.textContent = hi ? "पूरी खबर पढ़ें" : "Read full story";
+    }
+    if (heroReadLabel) {
+      heroReadLabel.textContent = hi ? "पूरी खबर पढ़ें →" : "Read full story →";
     }
     if (heroMedia) {
       const img = item.image;
       if (img) {
-        heroMedia.style.backgroundImage = `linear-gradient(120deg, rgba(18,20,26,.72), rgba(18,20,26,.35)), url("${img}")`;
+        heroMedia.style.backgroundImage = `linear-gradient(180deg, rgba(18,20,26,.08), rgba(18,20,26,.28)), url("${img}")`;
         heroMedia.style.backgroundSize = "cover";
         heroMedia.style.backgroundPosition = "center";
       } else {
@@ -305,6 +298,39 @@
       }
       heroMedia.setAttribute("aria-label", item.title);
     }
+  }
+
+  function renderLeadRail(items, excludeId) {
+    if (!leadRailList) return;
+    const hi = getNewsLang() === "hi";
+    if (leadRailTitle) {
+      leadRailTitle.textContent = hi ? "अभी पढ़ें" : "Read now";
+    }
+    const list = (items || []).filter((item) => item.id !== excludeId).slice(0, 8);
+    if (!list.length) {
+      leadRailList.innerHTML = `<li class="lead-rail-empty">${
+        hi ? "सुर्खियाँ लोड हो रही हैं…" : "Headlines loading…"
+      }</li>`;
+      return;
+    }
+    leadRailList.innerHTML = list
+      .map((item) => {
+        const place =
+          item.districtLabel ||
+          item.category ||
+          (hi ? "आदिभूमि" : "Adibhumi");
+        return `<li>
+          <a href="${articleHref(item)}">
+            <span>
+              <strong>${escapeHtml(item.title)}</strong>
+              <span>${escapeHtml(place)}${
+                item.publishedAt ? ` · ${formatTime(item.publishedAt)}` : ""
+              }</span>
+            </span>
+          </a>
+        </li>`;
+      })
+      .join("");
   }
 
   function filterByArea(items, filter = "all") {
@@ -643,8 +669,9 @@
         ),
       ];
       renderHero(front);
+      renderLeadRail(topRail, front?.id);
       renderTrending(topFour.length ? topFour : ordered);
-      renderTopGrid(topRail);
+      renderTopGrid(topRail.filter((i) => i.id !== front?.id));
       renderLiveFeed(items, data);
       renderDistrictFeed(items, activeFilter);
       renderTopicColumns(items);

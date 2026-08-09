@@ -78,27 +78,33 @@
   </div>
 
   <main id="main">
-    <section class="hero" id="top" aria-labelledby="heroTitle">
-      <div class="hero-media" id="heroMedia" role="img" aria-label="मुख्य खबर">
-        <div class="hero-media-wash"></div>
-      </div>
-      <div class="container hero-copy">
-        <p class="kicker" id="heroKicker">लाइव · आदिवासी · मालवा-निमाड़ · मप्र</p>
-        <h1 id="heroTitle">ताज़ा खबरें लोड हो रही हैं…</h1>
-        <p class="hero-deck" id="heroDeck">
-          पश्चिम मध्य प्रदेश की जनजातीय भूमि — झाबुआ, अलीराजपुर, धार, बड़वानी और मालवा-निमाड़ की ताज़ा खबरें।
-        </p>
-        <div class="hero-cta">
-          <a class="btn btn-primary" id="heroLink" href="#live-feed">पूरी खबर पढ़ें</a>
-          <a class="btn btn-ghost" href="#live-feed">लाइव फ़ीड</a>
-        </div>
-      </div>
+    <!-- Bhaskar-style lead: big story + right rail -->
+    <section class="section container lead-package" id="top" aria-labelledby="heroTitle">
+      <article class="lead-main">
+        <a class="lead-main-link" id="heroLink" href="#top">
+          <div class="lead-media" id="heroMedia" role="img" aria-label="मुख्य खबर"></div>
+          <div class="lead-copy">
+            <p class="kicker" id="heroKicker">लाइव · आदिभूमि</p>
+            <h1 id="heroTitle">ताज़ा खबरें लोड हो रही हैं…</h1>
+            <p class="hero-deck" id="heroDeck">
+              अलीराजपुर, झाबुआ, धार, बड़वानी और मालवा-निमाड़ की ताज़ा खबरें।
+            </p>
+            <span class="lead-readmore" id="heroReadLabel">पूरी खबर पढ़ें →</span>
+          </div>
+        </a>
+      </article>
+      <aside class="lead-rail" aria-labelledby="leadRailTitle">
+        <h2 id="leadRailTitle">अभी पढ़ें</h2>
+        <ol class="lead-rail-list" id="leadRailList">
+          <li class="lead-rail-empty">सुर्खियाँ लोड हो रही हैं…</li>
+        </ol>
+      </aside>
     </section>
 
     <section class="section container story-grid-section" aria-labelledby="topGridTitle">
       <div class="section-head">
         <h2 id="topGridTitle">टॉप न्यूज़ · अलीराजपुर · झाबुआ · धार · बड़वानी</h2>
-        <p class="section-meta" id="topGridMeta">टॉप 4 ज़िले → अन्य ज़िले → मप्र → भारत</p>
+        <p class="section-meta" id="topGridMeta">टॉप 4 ज़िले · ताज़ा क्रम</p>
       </div>
       <div class="story-grid" id="topStoryGrid" aria-busy="true">
         <article class="story story-skeleton story-feature" aria-hidden="true"><div class="story-thumb"></div><div class="story-body"><span class="chip">…</span><h3> </h3><p> </p></div></article>
@@ -106,6 +112,38 @@
         <article class="story story-skeleton" aria-hidden="true"><div class="story-thumb"></div><div class="story-body"><span class="chip">…</span><h3> </h3></div></article>
         <article class="story story-skeleton" aria-hidden="true"><div class="story-thumb"></div><div class="story-body"><span class="chip">…</span><h3> </h3></div></article>
         <article class="story story-skeleton" aria-hidden="true"><div class="story-thumb"></div><div class="story-body"><span class="chip">…</span><h3> </h3></div></article>
+      </div>
+    </section>
+
+    <section class="section container" id="local" aria-labelledby="localTitle">
+      <div class="section-head">
+        <h2 id="localTitle">आदिवासी ज़िले · मालवा-निमाड़</h2>
+        <p class="section-meta" id="localMeta">झाबुआ / अलीराजपुर / धार / बड़वानी / खरगोन</p>
+      </div>
+      <div class="state-tabs" id="districtTabs" role="tablist" aria-label="क्षेत्र चुनें">
+        <button type="button" class="state-tab is-active" role="tab" aria-selected="true" data-filter="all">टॉप 4 ज़िले</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:alirajpur">अलीराजपुर</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:jhabua">झाबुआ</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:dhar">धार</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:barwani">बड़वानी</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:khargone">खरगोन</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:khandwa">खंडवा</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:ratlam">रतलाम</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:mandsaur">मंदसौर</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:neemuch">नीमच</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:burhanpur">बुरहानपुर</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="division:indore-div">इंदौर संभाग</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="division:ujjain-div">उज्जैन संभाग</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="mp">मध्य प्रदेश</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:indore">इंदौर</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:ujjain">उज्जैन</button>
+        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:dewas">देवास</button>
+      </div>
+      <div class="state-panels">
+        <div class="state-panel is-active" id="districtPanel" role="tabpanel">
+          <p class="feed-empty" id="districtEmpty">क्षेत्रीय खबरें लोड हो रही हैं…</p>
+          <ul class="live-feed-list" id="districtFeedList"></ul>
+        </div>
       </div>
     </section>
 
@@ -207,38 +245,6 @@
           <li><a href="#">पेपर लीक: सिस्टम सुधार के बिना बहस अधूरी</a></li>
         </ul>
       </aside>
-    </section>
-
-    <section class="section container" id="local" aria-labelledby="localTitle">
-      <div class="section-head">
-        <h2 id="localTitle">आदिवासी ज़िले · मालवा-निमाड़</h2>
-        <p class="section-meta" id="localMeta">झाबुआ / अलीराजपुर / धार / बड़वानी / खरगोन</p>
-      </div>
-      <div class="state-tabs" id="districtTabs" role="tablist" aria-label="क्षेत्र चुनें">
-        <button type="button" class="state-tab is-active" role="tab" aria-selected="true" data-filter="all">टॉप 4 ज़िले</button>
-        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:alirajpur">अलीराजपुर</button>
-        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:jhabua">झाबुआ</button>
-        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:dhar">धार</button>
-        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:barwani">बड़वानी</button>
-        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:khargone">खरगोन</button>
-        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:khandwa">खंडवा</button>
-        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:ratlam">रतलाम</button>
-        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:mandsaur">मंदसौर</button>
-        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:neemuch">नीमच</button>
-        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:burhanpur">बुरहानपुर</button>
-        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="division:indore-div">इंदौर संभाग</button>
-        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="division:ujjain-div">उज्जैन संभाग</button>
-        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="mp">मध्य प्रदेश</button>
-        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:indore">इंदौर</button>
-        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:ujjain">उज्जैन</button>
-        <button type="button" class="state-tab" role="tab" aria-selected="false" data-filter="district:dewas">देवास</button>
-      </div>
-      <div class="state-panels">
-        <div class="state-panel is-active" id="districtPanel" role="tabpanel">
-          <p class="feed-empty" id="districtEmpty">क्षेत्रीय खबरें लोड हो रही हैं…</p>
-          <ul class="live-feed-list" id="districtFeedList"></ul>
-        </div>
-      </div>
     </section>
 
     <section class="section band-soft" id="business" aria-labelledby="bizTitle">
