@@ -410,19 +410,22 @@
     const thumbStyle = item.image
       ? `style="background-image:url('${escapeHtml(item.image)}');background-size:cover;background-position:center;"`
       : "";
-    const summary = feature && item.summary ? `<p>${escapeHtml(item.summary)}</p>` : "";
-    const brand = hi ? "आदिभूमि" : "Adibhumi";
-    const fallbackCat = hi ? "टॉप" : "Top";
+    const summary =
+      feature && item.summary ? `<p>${escapeHtml(item.summary)}</p>` : "";
+    const place =
+      item.districtLabel ||
+      item.category ||
+      (hi ? "टॉप" : "Top");
     return `
-      <article class="story${feature ? " story-feature" : ""}">
+      <article class="db-row${feature ? " db-row-feature" : ""}">
         <a href="${articleHref(item)}">
-          <div class="story-thumb ${thumbClass}" ${thumbStyle}></div>
-          <div class="story-body">
-            <span class="chip">${escapeHtml(item.category || fallbackCat)}</span>
+          <div class="db-thumb ${thumbClass}" ${thumbStyle}></div>
+          <div class="db-body">
+            <span class="chip">${escapeHtml(place)}</span>
             <h3>${escapeHtml(item.title)}</h3>
             ${summary}
-            <span class="story-source">${brand}${
-              item.publishedAt ? ` · ${formatTime(item.publishedAt)}` : ""
+            <span class="db-meta">${
+              item.publishedAt ? formatTime(item.publishedAt) : ""
             }</span>
           </div>
         </a>
@@ -433,12 +436,11 @@
   function renderTopGrid(items) {
     if (!topStoryGrid) return;
     const hi = getNewsLang() === "hi";
-    const top = items.slice(0, 5);
+    const top = items.slice(0, 12);
     if (topGridMeta) {
-      const focusN = items.filter(isTopFocusItem).length;
       topGridMeta.textContent = hi
-        ? `अलीराजपुर · झाबुआ · धार · बड़वानी पहले (${focusN}) · ताज़ा क्रम`
-        : `Alirajpur · Jhabua · Dhar · Barwani first (${focusN}) · by latest`;
+        ? "ताज़ा क्रम · टॉप 4 ज़िले"
+        : "Latest · top 4 districts";
     }
     if (!top.length) {
       topStoryGrid.innerHTML = `<p class="feed-empty">${
@@ -448,7 +450,7 @@
       return;
     }
     topStoryGrid.innerHTML = top
-      .map((item, index) => storyCard(item, index, index === 0))
+      .map((item, index) => storyCard(item, index, index < 2))
       .join("");
     topStoryGrid.setAttribute("aria-busy", "false");
   }
