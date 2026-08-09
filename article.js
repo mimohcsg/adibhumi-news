@@ -63,9 +63,19 @@
 
   function bodyFromArticle(article) {
     if (article.bodyHtml && /<p[\s>]/i.test(article.bodyHtml) && article.bodyHtml.trim().length > 80) {
-      return `<div class="article-body-html">${article.bodyHtml}</div>`;
+      let html = article.bodyHtml;
+      // Drop duplicated desk intro that older builds stamped onto paragraph 1.
+      html = html.replace(
+        /(<p[^>]*>)\s*आदिभूमि डेस्क(?:\s*की)?\s*(?:रिपोर्ट|report)?(?:\s*के\s*अनुसार)?\s*[—\-–:,]*\s*/i,
+        "$1"
+      );
+      html = html.replace(
+        /(<p[^>]*>)\s*According to the Adibhumi Desk,?\s*/i,
+        "$1"
+      );
+      return `<div class="article-body-html">${html}</div>`;
     }
-    const text = article.body || article.summary || "";
+    const text = stripDeskFramingClient(article.body || article.summary || "");
     const chunks = text
       .replace(/\s+/g, " ")
       .split(/(?<=[।.!?])\s+/)
@@ -84,17 +94,31 @@
           : "Full details for this story will be updated shortly."
       )}</p>`;
     }
-    return paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("");
+    return paragraphs.map((p) => `<p>${escapeHtml(stripDeskFramingClient(p))}</p>`).join("");
+  }
+
+  function stripDeskFramingClient(text = "") {
+    return String(text || "")
+      .replace(/^आदिभूमि डेस्क(?:\s*की)?\s*(?:रिपोर्ट|report)?(?:\s*के\s*अनुसार)?\s*[—\-–:,]*\s*/i, "")
+      .replace(/^According to the Adibhumi Desk,?\s*/i, "")
+      .replace(/^Adibhumi Desk(?:\s*report)?\s*[—\-–:,]*\s*/i, "")
+      .replace(/^के अनुसार,?\s*/i, "")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   function shouldShowDek(article) {
     if (!article.summary) return false;
-    const body = (article.body || "").replace(/\s+/g, " ");
-    const summary = article.summary.replace(/\s+/g, " ");
+    const bodyRaw = article.body || String(article.bodyHtml || "").replace(/<[^>]+>/g, " ");
+    const body = stripDeskFramingClient(bodyRaw);
+    const summary = stripDeskFramingClient(article.summary);
     if (!body) return true;
-    // Avoid repeating the same lead under the title.
-    if (body.startsWith(summary.slice(0, Math.min(80, summary.length)))) return false;
     if (summary.length < 60) return false;
+    // Avoid repeating the same lead under the title.
+    const probe = summary.slice(0, Math.min(90, summary.length));
+    const needle = probe.slice(0, Math.min(70, probe.length));
+    if (needle && body.startsWith(needle)) return false;
+    if (needle && body.includes(needle)) return false;
     return true;
   }
 

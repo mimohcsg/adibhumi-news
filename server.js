@@ -681,12 +681,19 @@ function editorialTitle(rawTitle = "", lang = "hi") {
   return title.slice(0, 200).trim();
 }
 
+function stripDeskFraming(text = "") {
+  return String(text || "")
+    .replace(/^आदिभूमि डेस्क(?:\s*की)?\s*(?:रिपोर्ट|report)?(?:\s*के\s*अनुसार)?\s*[—\-–:,]*\s*/i, "")
+    .replace(/^According to the Adibhumi Desk,?\s*/i, "")
+    .replace(/^Adibhumi Desk(?:\s*report)?\s*[—\-–:,]*\s*/i, "")
+    .replace(/^के अनुसार,?\s*/i, "")
+    .trim();
+}
+
 function editorialSummary(rawSummary = "", title = "", lang = "hi", districtLabel = "") {
   let summary = stripPublisherAttribution(stripHtml(rawSummary));
   summary = summary.replace(/आलीराजपुर/g, "अलीराजपुर");
-  summary = summary.replace(/^आदिभूमि डेस्क(?:\s*की)?\s*(?:रिपोर्ट|report)?\s*[—\-–:]*\s*/i, "");
-  summary = summary.replace(/^According to the Adibhumi Desk,?\s*/i, "");
-  summary = summary.replace(/^Adibhumi Desk\s*[—\-–:]*\s*/i, "");
+  summary = stripDeskFraming(summary);
 
   const titleNorm = title.replace(/\s+/g, " ").trim();
   if (!summary || summary === titleNorm || titleNorm.includes(summary.slice(0, 40))) {
@@ -696,7 +703,7 @@ function editorialSummary(rawSummary = "", title = "", lang = "hi", districtLabe
         ? `आदिभूमि डेस्क: ${place} से जुड़ी यह खबर। ${titleNorm}`
         : `Adibhumi Desk: Coverage from ${place}. ${titleNorm}`;
   } else if (lang === "hi") {
-    summary = `आदिभूमि डेस्क रिपोर्ट — ${summary}`;
+    summary = `आदिभूमि डेस्क — ${summary}`;
   } else {
     summary = `Adibhumi Desk — ${summary}`;
   }
@@ -1442,6 +1449,11 @@ function isNoiseParagraph(text, title = "") {
   if (/^(अपडेटेड|updated|published|last updated)/i.test(t) && t.length < 110) return true;
   if (/मिनट पहले|minutes ago|hours ago|घंटे पहले/i.test(t) && t.length < 90) return true;
   if (/^https?:\/\//i.test(t)) return true;
+  // Publisher widgets / video promo lines that often become the fake "lead"
+  if (/video\s*में\s*देखने|ऊपर\s*क्लिक|click\s*(above|here)|चुनिंदा\s*बड़ी\s*खबरों/i.test(t)) {
+    return true;
+  }
+  if (/दिनभर\s*(की|में).*VIDEO|watch\s*.*video\s*click/i.test(t)) return true;
   return false;
 }
 
@@ -1489,6 +1501,7 @@ function buildCleanArticle(title, rawHtml, rawText, lang = "hi") {
 
   paras = paras
     .map((p) => scrubPublisherFromBody(p))
+    .map((p) => stripDeskFraming(p))
     .map((p) => p.replace(/आलीराजपुर/g, "अलीराजपुर"))
     .filter((p) => p && !isNoiseParagraph(p, title));
 
@@ -1499,13 +1512,8 @@ function buildCleanArticle(title, rawHtml, rawText, lang = "hi") {
     }
   }
 
-  // Desk framing — first paragraph presented as आदिभूमि rewrite
-  if (paras[0] && lang === "hi" && !/^आदिभूमि/.test(paras[0])) {
-    paras[0] = `आदिभूमि डेस्क की रिपोर्ट के अनुसार, ${paras[0].replace(/^आदिभूमि डेस्क[^\—\-–]*[\—\-–]\s*/i, "")}`;
-  } else if (paras[0] && lang === "en" && !/^Adibhumi/i.test(paras[0])) {
-    paras[0] = `According to the Adibhumi Desk, ${paras[0]}`;
-  }
-
+  // Body stays clean news copy — byline already says आदिभूमि डेस्क.
+  // Framing is applied once in the summary/dek only.
   const escape = (p) => p.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const bodyHtml = paras.map((p) => `<p>${escape(p)}</p>`).join("\n");
   const bodyText = paras.join("\n\n");
