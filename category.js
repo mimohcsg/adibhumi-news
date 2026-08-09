@@ -94,6 +94,15 @@
     }
   }
 
+  function hasRealImage(item) {
+    const img = item?.image;
+    if (!img || item.imageIsFallback) return false;
+    if (/unsplash\.com|pexels\.com|pixabay\.com|picsum\.photos|placeholder/i.test(img)) {
+      return false;
+    }
+    return true;
+  }
+
   function escapeHtml(value) {
     return String(value)
       .replace(/&/g, "&amp;")
@@ -120,7 +129,7 @@
 
   function storyCard(item, index) {
     const place = item.districtLabel || item.category || (hi ? "आदिभूमि" : "Adibhumi");
-    const useImage = item.image && !item.imageIsFallback;
+    const useImage = hasRealImage(item);
     const thumbStyle = useImage
       ? `style="background-image:url('${escapeHtml(item.image)}');background-size:cover;background-position:center;"`
       : "";

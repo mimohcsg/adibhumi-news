@@ -257,7 +257,13 @@
   }
 
   function hasRealImage(item) {
-    return Boolean(item?.image && !item.imageIsFallback);
+    const img = item?.image;
+    if (!img || item.imageIsFallback) return false;
+    // Client-side guard: never paint Unsplash/stock stamps even if API lags.
+    if (/unsplash\.com|pexels\.com|pixabay\.com|picsum\.photos|placeholder/i.test(img)) {
+      return false;
+    }
+    return true;
   }
 
   function renderTrending(items) {

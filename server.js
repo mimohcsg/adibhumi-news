@@ -856,15 +856,29 @@ function thematicImage(title, summary, districtId, topic) {
   return THEME_IMAGES[themeKeyFromText(title, summary, districtId, topic)] || THEME_IMAGES.rural;
 }
 
+function isStockImageUrl(url = "") {
+  if (!url) return true;
+  const lower = String(url).toLowerCase();
+  if (THEME_IMAGE_SET.has(url)) return true;
+  // Any Unsplash / generic stock CDN counts as a stamp — never show on आदिभूमि.
+  if (/unsplash\.com|images\.unsplash|pexels\.com|pixabay\.com|placeholder\.com|via\.placeholder|loremflickr|picsum\.photos/i.test(lower)) {
+    return true;
+  }
+  return false;
+}
+
 function isThematicImage(url) {
-  return Boolean(url && THEME_IMAGE_SET.has(url));
+  return isStockImageUrl(url);
 }
 
 function isUsableImageUrl(url) {
   if (!url || !/^https?:\/\//i.test(url)) return false;
   const lower = String(url).toLowerCase();
-  if (/\.(svg)(\?|$)/i.test(lower)) return false;
-  if (/logo|sprite|icon|favicon|1x1|pixel|spacer|blank\.gif/i.test(lower)) return false;
+  if (isStockImageUrl(lower)) return false;
+  if (/\.(svg|gif)(\?|$)/i.test(lower)) return false;
+  if (/logo|sprite|icon|favicon|1x1|pixel|spacer|blank\.gif|default[_-]?image|no[_-]?image/i.test(lower)) {
+    return false;
+  }
   // Google News placeholder / brand marks — not the story photo
   if (/googleusercontent\.com\/j6_cofbogxh|gstatic\.com\/.*logo|lh3\.googleusercontent\.com\/.*s0-w300/i.test(lower)) {
     return false;
@@ -878,6 +892,18 @@ function absoluteUrl(maybeUrl, baseUrl) {
   } catch {
     return null;
   }
+}
+
+function scoreStoryImageUrl(url = "") {
+  const u = String(url).toLowerCase();
+  let score = 1;
+  if (/bhaskarassets|amarujala|jagranimages|indiatimes|ndtvimg|thehindu|indianexpress|aajtak|patrika|naidunia|timesofindia|toiimg|hindustantimes|wp-content\/uploads|story|article|thumb|photo|media/i.test(u)) {
+    score += 8;
+  }
+  if (/\/\d{3,4}x\d{3,4}\//i.test(u) || /width=\d{3,}/i.test(u)) score += 2;
+  if (/avatar|author|icon|logo|sprite|emoji|ads?/i.test(u)) score -= 10;
+  if (/\.gif(\?|$)/i.test(u)) score -= 3;
+  return score;
 }
 
 function extractImagesFromHtml(html = "", baseUrl = "") {
@@ -902,15 +928,22 @@ function extractImagesFromHtml(html = "", baseUrl = "") {
     /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image(?::src)?["']/i
   );
   if (tw2?.[1]) push(tw2[1]);
+  // Common Indian news CMS image hooks
+  const lazy = String(html).matchAll(
+    /<(?:img|source)[^>]+(?:data-src|data-original|data-lazy-src|data-img)=["']([^"']+)["']/gi
+  );
+  for (const match of lazy) push(match[1]);
   const imgs = String(html).matchAll(/<img[^>]+src=["']([^"']+)["']/gi);
   for (const match of imgs) {
     push(match[1]);
-    if (out.length >= 6) break;
+    if (out.length >= 12) break;
   }
+  // Prefer publisher CDN / article photos over random page chrome
+  out.sort((a, b) => scoreStoryImageUrl(b) - scoreStoryImageUrl(a));
   return out;
 }
 
-/** Prefer the story's own photo from RSS; fall back to theme only if nothing else. */
+/** Prefer the story's own photo from RSS — never invent a stock stamp. */
 function pickImage(item, meta = {}) {
   const candidates = [];
   if (item.enclosure?.url) candidates.push(item.enclosure.url);
@@ -933,17 +966,15 @@ function pickImage(item, meta = {}) {
   const html = item.contentEncoded || item["content:encoded"] || item.content || item.description || "";
   candidates.push(...extractImagesFromHtml(html, item.link || ""));
 
-  for (const url of candidates) {
-    if (isUsableImageUrl(url)) return url;
-  }
-
-  return thematicImage(meta.title || item.title, meta.summary || "", meta.districtId, meta.topic);
+  const ranked = candidates
+    .filter((url) => isUsableImageUrl(url))
+    .sort((a, b) => scoreStoryImageUrl(b) - scoreStoryImageUrl(a));
+  return ranked[0] || null;
 }
 
 function resolvePublicImage(item) {
-  if (isUsableImageUrl(item.image) && !isThematicImage(item.image)) return item.image;
-  if (isUsableImageUrl(item.image)) return item.image;
-  return thematicImage(item.title, item.summary, item.districtId, item.topic);
+  if (isUsableImageUrl(item.image) && !isStockImageUrl(item.image)) return item.image;
+  return null;
 }
 
 function isGoogleNewsUrl(url = "") {
@@ -1064,7 +1095,7 @@ async function fetchStoryImageFromPage(url) {
 
 async function hydrateStoryImage(item) {
   if (!item?.link) return item;
-  if (isUsableImageUrl(item.image) && !isThematicImage(item.image)) {
+  if (isUsableImageUrl(item.image) && !isStockImageUrl(item.image)) {
     return { ...item, imageIsFallback: false };
   }
 
@@ -1080,8 +1111,12 @@ async function hydrateStoryImage(item) {
 
   try {
     const publisherUrl = (await resolveCanonicalArticleUrl(item.link)) || item.link;
+    // Google News links with no resolved publisher cannot yield a story photo.
+    if (isGoogleNewsUrl(publisherUrl)) {
+      return { ...item, image: null, imageIsFallback: true };
+    }
     const image = await fetchStoryImageFromPage(publisherUrl);
-    if (isUsableImageUrl(image)) {
+    if (isUsableImageUrl(image) && !isStockImageUrl(image)) {
       storyImageCache.set(item.link, {
         image,
         canonicalLink: publisherUrl,
@@ -1100,7 +1135,7 @@ async function hydrateStoryImage(item) {
 
   return {
     ...item,
-    image: resolvePublicImage(item),
+    image: null,
     imageIsFallback: true,
   };
 }
@@ -1313,8 +1348,10 @@ function toPublicItem(item, lang) {
     id: item.id,
     title: editorialTitle(item.title, lang),
     summary: editorialSummary(item.summary, item.title, lang, districtMeta ? (lang === "en" ? districtMeta.en : districtMeta.hi) : ""),
-    image: isUsableImageUrl(item.image) ? item.image : resolvePublicImage(item),
-    imageIsFallback: Boolean(item.imageIsFallback || isThematicImage(item.image)),
+    image: isUsableImageUrl(item.image) && !isStockImageUrl(item.image) ? item.image : null,
+    imageIsFallback: Boolean(
+      !item.image || item.imageIsFallback || isStockImageUrl(item.image)
+    ),
     publishedAt: item.publishedAt,
     lang: item.lang,
     category: lang === "en" ? item.categoryEn : item.category,
@@ -1470,7 +1507,7 @@ function normalizeItem(item, feed) {
   normalized.storyTier = storyTier(normalized);
   normalized.frontScore = frontScore(normalized);
   normalized.fullFetched = bodyText.length >= MIN_FULL_BODY_CHARS;
-  normalized.imageIsFallback = isThematicImage(normalized.image);
+  normalized.imageIsFallback = !normalized.image || isStockImageUrl(normalized.image);
   return normalized;
 }
 
@@ -2097,8 +2134,8 @@ async function refreshNews(force = false) {
 
   let withImages = deduped;
   try {
-    // Await a first wave so Top News / hero get real story photos quickly.
-    withImages = await hydrateNewsImages(deduped, { limit: 28, concurrency: 6 });
+    // Block until focus/top stories have real publisher photos (no stock stamps).
+    withImages = await hydrateNewsImages(deduped, { limit: 40, concurrency: 8 });
     withImages = sortNewsItems(withImages);
   } catch (err) {
     console.warn("[adibhumi] image hydrate failed", err.message);
@@ -2113,8 +2150,8 @@ async function refreshNews(force = false) {
     errors,
   };
 
-  // Continue filling photos for the rest of the feed without blocking the response.
-  hydrateNewsImages(withImages, { limit: 60, concurrency: 4 })
+  // Fill more photos in the background.
+  hydrateNewsImages(withImages, { limit: 80, concurrency: 5 })
     .then((more) => {
       if (cache.fetchedAt !== now) return;
       cache.items = sortNewsItems(more);
@@ -2132,7 +2169,7 @@ async function refreshNews(force = false) {
     console.warn("[adibhumi] e-paper archive failed", err.message);
   }
 
-  const realPhotos = withImages.filter((i) => i.image && !isThematicImage(i.image)).length;
+  const realPhotos = withImages.filter((i) => i.image && !isStockImageUrl(i.image)).length;
   console.log(
     `[adibhumi] refreshed ${withImages.length} stories (${realPhotos} with story photos) from ${sources.filter((s) => s.ok).length}/${FEEDS.length} sources`
   );

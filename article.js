@@ -153,7 +153,9 @@
         </p>
       </header>
       ${
-        article.image
+        article.image &&
+        !article.imageIsFallback &&
+        !/unsplash\.com|pexels\.com|pixabay\.com|picsum\.photos/i.test(article.image)
           ? `<figure class="article-figure">
               <img src="${escapeHtml(article.image)}" alt="" loading="eager">
             </figure>`
