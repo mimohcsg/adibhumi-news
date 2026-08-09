@@ -65,7 +65,8 @@ const COVERAGE = {
         "ranapur",
         "मेघनगर",
         "meghnagar",
-        "रामा",
+        // Avoid bare "रामा" — it matches inside "ड्रामा".
+        "रामा झाबुआ",
         "rama jhabua",
       ],
     },
@@ -1203,9 +1204,10 @@ function aliasMatches(hay, alias) {
   if (/^[a-z0-9][a-z0-9\s-]{0,24}$/i.test(a) && !/[\u0900-\u097F]/.test(a)) {
     return new RegExp(`(?:^|[^a-z0-9])${escapeRegExp(a)}(?:[^a-z0-9]|$)`, "i").test(hay);
   }
-  // Short Hindi tokens: "धार" must not match "आधार" / "धार्मिक" / "धारा".
-  const graphemes = Array.from(a);
-  if (graphemes.length <= 3) {
+  // Short Hindi tokens need letter boundaries:
+  // "धार" ≠ "आधार", "रामा" ≠ "ड्रामा".
+  const units = Array.from(a);
+  if (units.length <= 6) {
     return new RegExp(
       `(?:^|[^\\u0900-\\u097F])${escapeRegExp(a)}(?:[^\\u0900-\\u097F]|$)`,
       "u"
@@ -1263,11 +1265,28 @@ function matchesTopicFilter(item, topic) {
   }
 
   if (topic === "malwa" || topic === "region") {
-    // West MP geography only — not Bollywood/sports desks mis-tagged via short aliases.
+    // West MP geography only — not national desks / false district tags.
     if (isDeskTopicItem(item)) return false;
-    if (item.divisionId === "indore-div" || item.divisionId === "ujjain-div") return true;
+    const titleHay = String(item.title || "");
+    const placeInTitle =
+      /मालवा|निमाड़|निमाड|malwa|nimad|nimar|झाबुआ|अलीराजपुर|धार|बड़वानी|बडवानी|खरगोन|खंडवा|बुरहानपुर|इंदौर|उज्जैन|देवास|रतलाम|मंदसौर|नीमच|शाजापुर|आगर/i.test(
+        titleHay
+      );
+    // Bollywood / film wires without a place name in the headline are not regional.
+    if (
+      !placeInTitle &&
+      /फिल्म|बॉलीवुड|ड्रामा|सनी देओल|bollywood|box office|cast fees/i.test(hay)
+    ) {
+      return false;
+    }
     if (item.districtId && MALWA_NIMAD_DISTRICTS.has(item.districtId)) return true;
-    return /मालवा|निमाड़|निमाड|malwa|nimad|nimar/i.test(hay);
+    if (
+      (item.divisionId === "indore-div" || item.divisionId === "ujjain-div") &&
+      (placeInTitle || (item.regionScore || 0) >= 20)
+    ) {
+      return true;
+    }
+    return /मालवा|निमाड़|निमाड|malwa|nimad|nimar/i.test(titleHay);
   }
 
   if (topic === "sports" || topic === "cricket") {
