@@ -575,10 +575,16 @@ const PUBLISHER_NAMES = [
   "Amar Ujala",
   "अमर उजाला",
   "Nai Dunia",
-  "नई दुनिया",
+  "NaiDunia",
   "Naidunia",
+  "नई दुनिया",
+  "नईदुनिया",
+  "नई दुनिया न्यूज",
+  "नईदुनिया न्यूज",
   "Jagran",
   "जागरण",
+  "Dainik Jagran",
+  "दैनिक जागरण",
   "Aaj Tak",
   "आज तक",
   "BBC Hindi",
@@ -593,8 +599,10 @@ const PUBLISHER_NAMES = [
   "Jhabua Live",
   "Indore Samachar",
   "Free Press",
+  "Free Press Journal",
   "Patrika",
   "पत्रिका",
+  "Rajasthan Patrika",
   "News18",
   "NDTV",
   "ABP News",
@@ -606,10 +614,14 @@ const PUBLISHER_NAMES = [
   "IANS",
   "scanx.trade",
   "Mshale",
+  "Haribhoomi",
+  "हरिभूमि",
+  "Navbharat",
+  "नवभारत",
 ];
 
 const PUBLISHER_NAME_RE = new RegExp(
-  `\\b(?:${PUBLISHER_NAMES.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\b`,
+  `(?:${PUBLISHER_NAMES.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`,
   "gi",
 );
 
@@ -636,6 +648,7 @@ function stripPublisherAttribution(text = "") {
     if (t === before) break;
   }
 
+  t = stripWireDateline(t);
   t = t.replace(PUBLISHER_NAME_RE, " ");
   t = t
     .replace(/\(\s*\)/g, "")
@@ -643,6 +656,62 @@ function stripPublisherAttribution(text = "") {
     .replace(/\s{2,}/g, " ")
     .trim();
   return t;
+}
+
+/**
+ * Remove wire datelines / source stamps such as:
+ * "नईदुनिया न्यूज, अलीराजपुर।" / "Nai Dunia News, Alirajpur."
+ * Also drop scraped publish/update metadata lines.
+ */
+function stripWireDateline(text = "") {
+  let t = String(text || "").trim();
+  if (!t) return "";
+
+  // Publish / Updated metadata pasted from publisher pages
+  t = t.replace(
+    /Publish\s*Date\s*:\s*[A-Za-z0-9,:\s()/.-]+(?:\([A-Z]{2,5}\))?/gi,
+    ""
+  );
+  t = t.replace(
+    /Updated\s*Date\s*:\s*[A-Za-z0-9,:\s()/.-]+(?:\([A-Z]{2,5}\))?/gi,
+    ""
+  );
+  t = t.replace(
+    /(?:प्रकाशित|अपडेट(?:ेड)?|Updated|Published)\s*(?:तिथि|Date)?\s*[:：]\s*[A-Za-z0-9,:\s()/.-]{6,60}/gi,
+    ""
+  );
+
+  const outletPart =
+    "(?:नई\\s*दुनिया|नईदुनिया|Nai\\s*Dunia|Naidunia|अमर\\s*उजाला|Amar\\s*Ujala|दैनिक\\s*भास्कर|भास्कर|Dainik\\s*Bhaskar|Bhaskar|जागरण|Jagran|पत्रिका|Patrika|आज\\s*तक|Aaj\\s*Tak|नवभारत|Navbharat|हरिभूमि|Haribhoomi|Free\\s*Press(?:\\s*Journal)?|News18|NDTV|ABP(?:\\s*News)?|Zee\\s*News|ANI|PTI|IANS)";
+
+  // Place names only — never absorb Devanagari danda (U+0964) into this class.
+  const placePart = "[\\u0900-\\u0963\\u0965-\\u097FA-Za-z\\s\\-]{0,40}";
+
+  // "नईदुनिया न्यूज, अलीराजपुर।" / "Nai Dunia News, Alirajpur."
+  t = t.replace(
+    new RegExp(
+      `^(?:${outletPart})(?:\\s*(?:न्यूज|समाचार|News|Desk|डेस्क))?\\s*[,:\\-–—]?\\s*${placePart}[।.]\\s*`,
+      "i"
+    ),
+    ""
+  );
+
+  // Mid-paragraph leftovers: "…। नईदुनिया न्यूज।"
+  t = t.replace(
+    new RegExp(
+      `([।.]\\s*)(?:${outletPart})(?:\\s*(?:न्यूज|समाचार|News))?\\s*[,:\\-–—]?\\s*${placePart}[।.]?`,
+      "gi"
+    ),
+    "$1"
+  );
+
+  // Generic Hindi wire openers: "… न्यूज, धार।" when outlet already stripped to "न्यूज, धार।"
+  t = t.replace(
+    /^(?:न्यूज|समाचार|News)\s*[,:\-–—]\s*[\u0900-\u097FA-Za-z\s\-]{2,40}[।.]\s*/i,
+    ""
+  );
+
+  return t.replace(/\s{2,}/g, " ").trim();
 }
 
 /** Light desk rewrite so copy reads as आदिभूमि coverage, not a wire paste. */

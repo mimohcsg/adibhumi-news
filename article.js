@@ -73,6 +73,12 @@
         /(<p[^>]*>)\s*According to the Adibhumi Desk,?\s*/i,
         "$1"
       );
+      html = html.replace(
+        /(<p[^>]*>)\s*(?:नई\s*दुनिया|नईदुनिया|Nai\s*Dunia|Naidunia|अमर\s*उजाला|दैनिक\s*भास्कर|भास्कर|जागरण|पत्रिका)(?:\s*(?:न्यूज|समाचार|News))?\s*[,:\-–—]?\s*[\u0900-\u0963\u0965-\u097FA-Za-z\s\-]{0,40}[।.]?\s*/i,
+        "$1"
+      );
+      html = html.replace(/(<p[^>]*>)\s*Publish\s*Date\s*:[A-Za-z0-9,:\s()/.-]*(?:\([A-Z]{2,5}\))?/i, "$1");
+      html = html.replace(/Updated\s*Date\s*:[A-Za-z0-9,:\s()/.-]*(?:\([A-Z]{2,5}\))?/gi, "");
       return `<div class="article-body-html">${html}</div>`;
     }
     const text = stripDeskFramingClient(article.body || article.summary || "");
@@ -103,6 +109,12 @@
       .replace(/^According to the Adibhumi Desk,?\s*/i, "")
       .replace(/^Adibhumi Desk(?:\s*report)?\s*[—\-–:,]*\s*/i, "")
       .replace(/^के अनुसार,?\s*/i, "")
+      .replace(/Publish\s*Date\s*:\s*[^\n]*/gi, "")
+      .replace(/Updated\s*Date\s*:\s*[^\n]*/gi, "")
+      .replace(
+        /^(?:नई\s*दुनिया|नईदुनिया|Nai\s*Dunia|Naidunia|अमर\s*उजाला|दैनिक\s*भास्कर|भास्कर|जागरण|पत्रिका)(?:\s*(?:न्यूज|समाचार|News))?\s*[,:\-–—]?\s*[\u0900-\u0963\u0965-\u097FA-Za-z\s\-]{0,40}[।.]?\s*/i,
+        ""
+      )
       .replace(/\s+/g, " ")
       .trim();
   }
