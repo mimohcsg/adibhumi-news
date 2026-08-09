@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>श्रेणी | आदिभूमि</title>
+  <meta name="description" content="आदिभूमि श्रेणीवार खबरें।">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@500;600;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="assets/adibhumi-mark.png">
+  <link rel="stylesheet" href="styles.css?v=20260809cat">
+</head>
+<body class="category-page">
+  <a class="skip-link" href="#categoryMain">खबरों पर जाएँ</a>
+
+  <header class="site-header">
+    <div class="top-bar">
+      <div class="container top-bar-inner">
+        <time id="liveDate" datetime=""></time>
+        <p class="top-tagline">मालवा · निमाड़ · आदिवासी आवाज़</p>
+        <div class="top-actions">
+          <a class="epaper-link" href="epaper.html">ई-पेपर</a>
+          <a class="epaper-link" href="index.html">होम</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="brand-bar">
+      <div class="container brand-bar-inner">
+        <a class="brand" href="index.html" aria-label="आदिभूमि होम">
+          <img class="brand-logo" src="assets/adibhumi-logo.png" width="280" height="64" alt="आदिभूमि" />
+          <span class="brand-text">
+            <span class="brand-en">WEST MP · CATEGORY</span>
+          </span>
+        </a>
+      </div>
+    </div>
+
+    <nav class="primary-nav" aria-label="मुख्य श्रेणियाँ">
+      <div class="container">
+        <ul id="categoryNav">
+          <li><a href="category.html?topic=breaking">ब्रेकिंग न्यूज़</a></li>
+          <li><a href="category.html?topic=local">आदिवासी ज़िले</a></li>
+          <li><a href="category.html?topic=malwa">मालवा-निमाड़</a></li>
+          <li><a href="category.html?topic=business">बिजनेस</a></li>
+          <li><a href="category.html?topic=sports">खेल</a></li>
+          <li><a href="category.html?topic=lifestyle">संस्कृति · जीवन</a></li>
+          <li><a href="category.html?topic=jobs">जॉब-एजुकेशन</a></li>
+          <li><a href="category.html?topic=opinion">ओपिनियन</a></li>
+        </ul>
+      </div>
+    </nav>
+  </header>
+
+  <main id="categoryMain" class="section container category-shell">
+    <div class="section-head db-section-head">
+      <div>
+        <p class="section-meta" id="categoryKicker">आदिभूमि</p>
+        <h1 id="categoryTitle">श्रेणी</h1>
+      </div>
+      <a class="see-all" href="index.html">← होम</a>
+    </div>
+    <p class="category-status" id="categoryStatus">खबरें लोड हो रही हैं…</p>
+    <div class="db-feed" id="categoryFeed" aria-busy="true"></div>
+  </main>
+
+  <script src="category.js?v=20260809cat"></script>
+</body>
+</html>

@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@500;600;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="assets/adibhumi-mark.png">
-  <link rel="stylesheet" href="styles.css?v=20260809b">
+  <link rel="stylesheet" href="styles.css?v=20260809cat">
 </head>
 <body>
   <a class="skip-link" href="#main">मुख्य खबरों पर जाएँ</a>
@@ -53,22 +53,22 @@
     <nav class="primary-nav" id="primaryNav" aria-label="मुख्य श्रेणियाँ">
       <div class="container">
         <ul>
-          <li><a class="is-active" href="#top">टॉप न्यूज़</a></li>
-          <li><a href="#local">आदिवासी ज़िले</a></li>
-          <li><a href="#live-feed">मालवा-निमाड़</a></li>
-          <li><a href="#business">बिजनेस</a></li>
-          <li><a href="#cricket">खेल</a></li>
-          <li><a href="#lifestyle">संस्कृति · जीवन</a></li>
-          <li><a href="#jobs">जॉब-एजुकेशन</a></li>
-          <li><a href="#opinion">ओपिनियन</a></li>
+          <li><a class="is-active" href="index.html">ब्रेकिंग न्यूज़</a></li>
+          <li><a href="category.html?topic=local">आदिवासी ज़िले</a></li>
+          <li><a href="category.html?topic=malwa">मालवा-निमाड़</a></li>
+          <li><a href="category.html?topic=business">बिजनेस</a></li>
+          <li><a href="category.html?topic=sports">खेल</a></li>
+          <li><a href="category.html?topic=lifestyle">संस्कृति · जीवन</a></li>
+          <li><a href="category.html?topic=jobs">जॉब-एजुकेशन</a></li>
+          <li><a href="category.html?topic=opinion">ओपिनियन</a></li>
         </ul>
       </div>
     </nav>
   </header>
 
-  <div class="trending" aria-label="ट्रेंडिंग">
+  <div class="trending" aria-label="ब्रेकिंग न्यूज़">
     <div class="container trending-inner">
-      <span class="trending-label">ट्रेंडिंग न्यूज़</span>
+      <span class="trending-label">ब्रेकिंग न्यूज़</span>
       <div class="trending-viewport">
         <div class="trending-track" id="trendingTrack">
           <span class="trending-placeholder">ताज़ा सुर्खियाँ लोड हो रही हैं…</span>
@@ -103,7 +103,7 @@
 
     <section class="section container db-home-section" aria-labelledby="topGridTitle">
       <div class="section-head db-section-head">
-        <h2 id="topGridTitle">टॉप न्यूज़</h2>
+        <h2 id="topGridTitle">ब्रेकिंग न्यूज़</h2>
         <p class="section-meta" id="topGridMeta">अलीराजपुर · झाबुआ · धार · बड़वानी</p>
       </div>
       <div class="db-feed" id="topStoryGrid" aria-busy="true">
@@ -251,7 +251,7 @@
       <div class="container">
         <div class="section-head">
           <h2 id="bizTitle">बिजनेस</h2>
-          <a class="see-all" href="#business">लाइव</a>
+          <a class="see-all" href="category.html?topic=business">और देखें</a>
         </div>
         <div class="biz-grid" id="bizGrid" aria-busy="true">
           <p class="feed-empty">बिजनेस खबरें लोड हो रही हैं…</p>
@@ -261,28 +261,32 @@
 
     <section class="section container multi-cols" aria-label="और श्रेणियाँ">
       <div id="cricket">
-        <h2>क्रिकेट</h2>
+        <h2><a href="category.html?topic=sports">खेल</a></h2>
         <ul class="mini-list" data-topic="cricket" aria-busy="true">
           <li>स्पोर्ट्स खबरें लोड हो रही हैं…</li>
         </ul>
+        <a class="see-all" href="category.html?topic=sports">सभी खेल खबरें →</a>
       </div>
       <div id="entertainment">
-        <h2>बॉलीवुड</h2>
+        <h2><a href="category.html?topic=entertainment">बॉलीवुड</a></h2>
         <ul class="mini-list" data-topic="entertainment" aria-busy="true">
           <li>बॉलीवुड खबरें लोड हो रही हैं…</li>
         </ul>
+        <a class="see-all" href="category.html?topic=entertainment">और देखें →</a>
       </div>
       <div id="lifestyle">
-        <h2>लाइफस्टाइल</h2>
+        <h2><a href="category.html?topic=lifestyle">लाइफस्टाइल</a></h2>
         <ul class="mini-list" data-topic="lifestyle" aria-busy="true">
           <li>लाइफस्टाइल खबरें लोड हो रही हैं…</li>
         </ul>
+        <a class="see-all" href="category.html?topic=lifestyle">और देखें →</a>
       </div>
       <div id="jobs">
-        <h2>जॉब · एजुकेशन</h2>
+        <h2><a href="category.html?topic=jobs">जॉब · एजुकेशन</a></h2>
         <ul class="mini-list" data-topic="jobs" aria-busy="true">
           <li>जॉब / एजुकेशन खबरें लोड हो रही हैं…</li>
         </ul>
+        <a class="see-all" href="category.html?topic=jobs">और देखें →</a>
       </div>
     </section>
 
@@ -324,10 +328,10 @@
       <div>
         <h3>श्रेणियाँ</h3>
         <ul>
-          <li><a href="#top">टॉप न्यूज़</a></li>
-          <li><a href="#local">आदिवासी ज़िले</a></li>
-          <li><a href="#national">देश</a></li>
-          <li><a href="#cricket">खेल</a></li>
+          <li><a href="category.html?topic=breaking">ब्रेकिंग न्यूज़</a></li>
+          <li><a href="category.html?topic=local">आदिवासी ज़िले</a></li>
+          <li><a href="category.html?topic=malwa">मालवा-निमाड़</a></li>
+          <li><a href="category.html?topic=sports">खेल</a></li>
         </ul>
       </div>
       <div>
@@ -353,6 +357,6 @@
     </div>
   </footer>
 
-  <script src="script.js?v=20260809b"></script>
+  <script src="script.js?v=20260809cat"></script>
 </body>
 </html>

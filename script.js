@@ -256,11 +256,15 @@
     liveStatusText.parentElement?.classList.toggle("is-error", isError);
   }
 
+  function hasRealImage(item) {
+    return Boolean(item?.image && !item.imageIsFallback);
+  }
+
   function renderTrending(items) {
     if (!trendingTrack) return;
     const label = document.querySelector(".trending-label");
     if (label) {
-      label.textContent = getNewsLang() === "en" ? "Trending News" : "ट्रेंडिंग न्यूज़";
+      label.textContent = getNewsLang() === "en" ? "Breaking News" : "ब्रेकिंग न्यूज़";
     }
     const picks = [...items]
       .sort((a, b) => (b.frontScore || 0) - (a.frontScore || 0))
@@ -280,14 +284,19 @@
 
   function pickFrontStory(items) {
     if (!items?.length) return null;
-    // Prefer newest Alirajpur, else newest Jhabua, else other focus, else overall.
-    const alirajpur = sortByRecency(items.filter((i) => i.district === "alirajpur"));
-    if (alirajpur[0]) return alirajpur[0];
-    const jhabua = sortByRecency(items.filter((i) => i.district === "jhabua"));
-    if (jhabua[0]) return jhabua[0];
     const focusRail = buildInterleavedFocusRail(items);
-    if (focusRail.length) return focusRail[0];
-    return sortByRecency(items)[0];
+    const withPhoto = (list) => list.find(hasRealImage) || list[0] || null;
+
+    const alirajpur = sortByRecency(items.filter((i) => i.district === "alirajpur"));
+    const jhabua = sortByRecency(items.filter((i) => i.district === "jhabua"));
+
+    return (
+      withPhoto(alirajpur) ||
+      withPhoto(jhabua) ||
+      withPhoto(focusRail) ||
+      withPhoto(sortByRecency(items)) ||
+      sortByRecency(items)[0]
+    );
   }
 
   function renderHero(item) {
@@ -309,7 +318,7 @@
         (hi ? "मालवा-निमाड़" : "Malwa–Nimad");
       const tags = [];
       if (item.isBreaking) tags.push(hi ? "ब्रेकिंग" : "Breaking");
-      tags.push(hi ? "टॉप" : "Top");
+      tags.push(hi ? "ब्रेकिंग" : "Breaking");
       tags.push(place);
       heroKicker.textContent = tags.join(" · ");
     }
@@ -322,13 +331,16 @@
       heroReadLabel.textContent = hi ? "पूरी खबर पढ़ें →" : "Read full story →";
     }
     if (heroMedia) {
-      const img = item.image;
+      // Never show mismatched stock stamps on the hero — only real story photos.
+      const img = hasRealImage(item) ? item.image : null;
       if (img) {
         heroMedia.style.backgroundImage = `linear-gradient(180deg, rgba(18,20,26,.08), rgba(18,20,26,.28)), url("${img}")`;
         heroMedia.style.backgroundSize = "cover";
         heroMedia.style.backgroundPosition = "center";
+        heroMedia.classList.remove("is-empty-media");
       } else {
         heroMedia.style.backgroundImage = "";
+        heroMedia.classList.add("is-empty-media");
       }
       heroMedia.setAttribute("aria-label", item.title);
     }
@@ -441,7 +453,7 @@
   function storyCard(item, index, feature = false) {
     const hi = getNewsLang() === "hi";
     const thumbClass = THUMB_CLASSES[index % THUMB_CLASSES.length];
-    const thumbStyle = item.image
+    const thumbStyle = hasRealImage(item)
       ? `style="background-image:url('${escapeHtml(item.image)}');background-size:cover;background-position:center;"`
       : "";
     const summary =
@@ -449,11 +461,11 @@
     const place =
       item.districtLabel ||
       item.category ||
-      (hi ? "टॉप" : "Top");
+      (hi ? "ब्रेकिंग" : "Breaking");
     return `
       <article class="db-row${feature ? " db-row-feature" : ""}">
         <a href="${articleHref(item)}">
-          <div class="db-thumb ${thumbClass}" ${thumbStyle}></div>
+          <div class="db-thumb ${thumbClass}${hasRealImage(item) ? "" : " is-fallback"}" ${thumbStyle}></div>
           <div class="db-body">
             <span class="chip">${escapeHtml(place)}</span>
             <h3>${escapeHtml(item.title)}</h3>
@@ -473,12 +485,12 @@
     const top = items.slice(0, 12);
     if (topGridMeta) {
       topGridMeta.textContent = hi
-        ? "ताज़ा क्रम · टॉप 4 ज़िले"
-        : "Latest · top 4 districts";
+        ? "ताज़ा क्रम · ब्रेकिंग · टॉप 4 ज़िले"
+        : "Latest · breaking · top 4 districts";
     }
     if (!top.length) {
       topStoryGrid.innerHTML = `<p class="feed-empty">${
-        hi ? "अभी टॉप न्यूज़ उपलब्ध नहीं।" : "No top stories available right now."
+        hi ? "अभी ब्रेकिंग न्यूज़ उपलब्ध नहीं।" : "No breaking stories available right now."
       }</p>`;
       topStoryGrid.setAttribute("aria-busy", "false");
       return;
@@ -717,8 +729,8 @@
       renderWorld(items);
       setStatus(
         hi
-          ? `लाइव · टॉप 4 ज़िले · ताज़ा · ${formatTime(data.refreshedAt)} · अगला अपडेट 15 मि`
-          : `Live · top 4 districts · latest · ${formatTime(data.refreshedAt)} · next in 15 min`
+          ? `लाइव · ब्रेकिंग · ताज़ा · ${formatTime(data.refreshedAt)} · अगला अपडेट 15 मि`
+          : `Live · breaking · latest · ${formatTime(data.refreshedAt)} · next in 15 min`
       );
     } catch (err) {
       console.error(err);

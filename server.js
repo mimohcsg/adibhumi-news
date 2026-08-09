@@ -821,16 +821,21 @@ const GOOGLE_NEWS_BATCH = "https://news.google.com/_/DotsSplashUi/data/batchexec
 
 function themeKeyFromText(title = "", summary = "", districtId = "", topic = "") {
   const hay = `${title} ${summary} ${topic}`.toLowerCase();
+  // Crime / death first — words like छात्र/आदिवासी must not steal these into education/tribal art.
+  if (
+    /हत्या|मौत|मृत्यु|फंद[ेा]|सुसाइड|आत्महत्या|हॉस्टल|छात्रावास|पुलिस|अपराध|गिरफ्तार|crime|arrest|murder|suicide|hanging|विवाद|झगड़ा|हमला|हड़ताल|संदिग्ध/.test(
+      hay
+    )
+  ) {
+    return "crime";
+  }
   if (/कृषि|किसान|फसल|खेत|agriculture|farmer|crop|बीज|सिंचाई/.test(hay)) return "agriculture";
   if (/क्रिकेट|खेलाड़ी|मैच|\bsport|ipl|टूर्नामेंट|फुटबॉल|हॉकी/.test(hay)) return "sports";
   if (/बारिश|मौसम|वर्षा|बाढ़|सूखा|weather|rain|monsoon|तूफान/.test(hay)) return "weather";
-  if (/शिक्षा|स्कूल|कॉलेज|परीक्षा|जॉब|नौकरी|education|exam|university|छात्र/.test(hay)) {
+  if (/शिक्षा|स्कूल|कॉलेज|परीक्षा|जॉब|नौकरी|education|exam|university/.test(hay)) {
     return "education";
   }
   if (/बिजनेस|व्यापार|बाजार|share|business|market|economy|महंगाई/.test(hay)) return "business";
-  if (/हत्या|हड़ताल|पुलिस|अपराध|गिरफ्तार|crime|arrest|strike|विवाद|झगड़ा|हमला/.test(hay)) {
-    return "crime";
-  }
   if (/अस्पताल|स्वास्थ्य|डॉक्टर|मरीज|health|hospital|covid|टीका/.test(hay)) return "health";
   if (/पर्व|त्योहार|दिवासा|मेला|festival|celebration|पूजा/.test(hay)) return "festival";
   if (
@@ -841,9 +846,9 @@ function themeKeyFromText(title = "", summary = "", districtId = "", topic = "")
     return "politics";
   }
   if (/आदिवासी|जनजाति|भील|tribal|वनवासी/.test(hay)) return "tribal";
-  if (districtId && (TOP_FOCUS_DISTRICTS.has(districtId) || OTHER_TRIBAL_DISTRICTS.has(districtId))) {
-    return "rural";
-  }
+  if (topic === "cricket" || topic === "sports") return "sports";
+  if (topic === "business") return "business";
+  if (topic === "jobs") return "education";
   return "rural";
 }
 
@@ -2195,10 +2200,53 @@ app.get("/api/news", async (req, res) => {
     const lang = req.query.lang === "en" ? "en" : "hi";
     const district = String(req.query.district || "").toLowerCase();
     const division = String(req.query.division || "").toLowerCase();
+    const topic = String(req.query.topic || "").toLowerCase();
     const data = await refreshNews(force);
     let filtered = data.items.filter((item) => item.lang === lang);
 
-    if (district === "mp" || division === "mp") {
+    if (topic && topic !== "all") {
+      if (topic === "breaking") {
+        filtered = filtered.filter(
+          (item) => item.isBreaking || item.isTopFocus || TOP_FOCUS_DISTRICTS.has(item.districtId)
+        );
+      } else if (topic === "local" || topic === "tribal") {
+        filtered = filtered.filter(
+          (item) =>
+            item.isTopFocus ||
+            item.isTribal ||
+            TOP_FOCUS_DISTRICTS.has(item.districtId) ||
+            OTHER_TRIBAL_DISTRICTS.has(item.districtId)
+        );
+      } else if (topic === "malwa" || topic === "region") {
+        filtered = filtered.filter(
+          (item) =>
+            item.districtId ||
+            item.divisionId ||
+            item.isMpStatewide ||
+            (item.regionScore || 0) >= 8
+        );
+      } else if (topic === "sports" || topic === "cricket") {
+        filtered = filtered.filter(
+          (item) =>
+            item.topic === "cricket" ||
+            item.topic === "sports" ||
+            /क्रिकेट|खिलाड़ी|sport|ipl|मैच|टी.?20|फुटबॉल|हॉकी|बैडमिंटन|टेनिस|bcci|विश्व कप/i.test(
+              `${item.title || ""} ${item.summary || ""} ${item.category || ""}`
+            )
+        );
+      } else if (topic === "opinion") {
+        filtered = filtered.filter(
+          (item) =>
+            item.topic === "opinion" ||
+            /ओपिनियन|opinion|संपादकीय|मत|कॉलम|editorial/i.test(
+              `${item.title || ""} ${item.summary || ""} ${item.category || ""}`
+            ) ||
+            item.topic === "world"
+        );
+      } else {
+        filtered = filtered.filter((item) => item.topic === topic);
+      }
+    } else if (district === "mp" || division === "mp") {
       // Statewide Madhya Pradesh stories (plus any tagged district in MP feeds).
       filtered = filtered.filter(
         (item) => item.isMpStatewide || item.districtId || (item.regionScore || 0) >= 8
@@ -2230,6 +2278,7 @@ app.get("/api/news", async (req, res) => {
       brand: "आदिभूमि",
       focus: lang === "en" ? COVERAGE.labelEn : COVERAGE.labelHi,
       lang,
+      topic: topic || "all",
       district: district || "all",
       division: division || "all",
       divisions: COVERAGE.divisions.map((d) => ({
